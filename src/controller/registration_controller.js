@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import {RegistrationLink} from "../model/registraionLinkSchema.js";
-import { generateOtp, hashOtp } from "../utils/jwt/otp.js";
+import {RegistrationLink} from "../model/registraionLinkSchema_model.js";
+import { generateOtp, hashOtp } from "../utils/otp/generate_otp.js";
 import { sendEmail } from "../config/email.js";
-import { otpEmailTemplate } from "../template/otpEmail.js";
+import { otpEmailTemplate } from "../template/otpEmailTemplate.js";
 
 
 export const createRegistrationLink = async (req, res) => {
@@ -52,7 +52,6 @@ export const validateRegistrationLink = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 export const submitRegistrationForm = async (req, res) => {
   try {
