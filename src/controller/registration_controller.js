@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import {RegistrationLink} from "../model/registraionLinkSchema.js";
-import { generateOtp, hashOtp } from "../utils/otp.js";
+import { generateOtp, hashOtp } from "../utils/jwt/otp.js";
 import { sendEmail } from "../config/email.js";
 import { otpEmailTemplate } from "../template/otpEmail.js";
 
