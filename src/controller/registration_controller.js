@@ -53,7 +53,6 @@ export const validateRegistrationLink = async (req, res) => {
   }
 };
 
-
 export const submitRegistrationForm = async (req, res) => {
   try {
     const { token } = req.params;
