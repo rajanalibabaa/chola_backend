@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* Test Route  was checking was working */
+/* Test Route  server was checking*/
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
