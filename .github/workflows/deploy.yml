@@ -21,8 +21,7 @@ jobs:
       - name: Deploy on VPS
         run: |
           ssh $VPS_USER@$VPS_HOST "
-           mkdir -p /var/www/chola_backend
-           cd /var/www/chola_backend
+           cd /root/chola_backend
            git fetch origin servercode
            git reset --hard origin/servercode
            npm install
