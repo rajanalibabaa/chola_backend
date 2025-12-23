@@ -1,17 +1,17 @@
 import crypto from "crypto";
-import {RegistrationLink} from "../model/registraionLinkSchema_model.js";
+import {Registration} from "../model/registraionSchema_model.js";
 import { generateOtp, hashOtp } from "../utils/otp/generate_otp.js";
 import { sendEmail } from "../config/email.js";
 import { otpEmailTemplate } from "../template/otpEmailTemplate.js";
 
 
-export const createRegistrationLink = async (req, res) => {
+export const createRegistration = async (req, res) => {
   try {
     const token = crypto.randomBytes(32).toString("hex");
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
 
-    const link = await RegistrationLink.create({
+    const link = await Registration.create({
       token,
       expiresAt,
       createdBy: req.user?.id, // admin id
@@ -29,11 +29,11 @@ export const createRegistrationLink = async (req, res) => {
   }
 };
 
-export const validateRegistrationLink = async (req, res) => {
+export const validateRegistration = async (req, res) => {
   try {
     const { token } = req.params;
 
-    const link = await RegistrationLink.findOne({ token });
+    const link = await Registration.findOne({ token });
 
     if (!link)
       return res.status(404).json({ message: "Invalid link" });
@@ -66,7 +66,7 @@ export const submitRegistrationForm = async (req, res) => {
       domainName,
     } = req.body;
 
-    const link = await RegistrationLink.findOne({ token });
+    const link = await Registration.findOne({ token });
 
     if (!link) return res.status(404).json({ message: "Invalid link" });
     if (link.isUsed) return res.status(400).json({ message: "Link already used" });
@@ -114,7 +114,7 @@ export const verifyRegistrationOtp = async (req, res) => {
     const { token } = req.params;
     const { otp } = req.body;
 
-    const link = await RegistrationLink
+    const link = await Registration
       .findOne({ token })
       .select("+otp");
 
