@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import registrationRoutes from './src/router/registration_router.js';
 import adminRoutes from './src/router/cholaAdmin/admin.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -9,6 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 /* Test Route */
 app.get("/", (req, res) => {

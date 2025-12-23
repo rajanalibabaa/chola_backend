@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const registrationLinkSchema = new mongoose.Schema(
+const RegistrationSchema = new mongoose.Schema(
   {
     token: {
       type: String,
@@ -54,8 +54,8 @@ const registrationLinkSchema = new mongoose.Schema(
 );
 
 /* Auto delete expired links (MongoDB TTL) */
-registrationLinkSchema.index(
+RegistrationSchema.index(
   { expiresAt: 1 },
   { expireAfterSeconds: 0 }
 );
-export const RegistrationLink = mongoose.model("RegistrationLink",registrationLinkSchema);
+export const Registration = mongoose.model("Registration",RegistrationSchema);
