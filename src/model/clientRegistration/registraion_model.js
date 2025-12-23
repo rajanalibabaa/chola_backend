@@ -4,7 +4,7 @@ const RegistrationSchema = new mongoose.Schema(
   {
     token: {
       type: String,
-      required: true,
+      // required: true,
       unique: true,
       index: true,
     },
@@ -36,7 +36,7 @@ const RegistrationSchema = new mongoose.Schema(
     },
 
     otpExpiresAt: {
-      type: Date,
+      type: String,
     },
 
     isOtpVerified: {

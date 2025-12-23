@@ -3,7 +3,7 @@ import { resendOtp, sendOtp, verifyOtp } from "../../controllers/otp/otp_control
 
 export const otpRouter = express.Router();
 
-otpRouter.get("/sendotp",sendOtp)
+otpRouter.post("/otp/send",sendOtp)
 otpRouter.post("/verifyotp/:token",verifyOtp)
 otpRouter.post("/resendotp",resendOtp)
 
