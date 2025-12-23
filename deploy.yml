@@ -1,0 +1,27 @@
+name: Deploy Node Backend to VPS
+
+on:
+  push:
+    branches:
+      - servercode
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          script: |
+            cd /var/www/chola_backend
+            git pull origin main
+            npm install
+            pm2 restart chola_clientbackend || pm2 start src/index.js --name chola_clientbackend
+            pm2 save
