@@ -14,20 +14,20 @@ jobs:
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          echo "${{ secrets.VPS_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
-        env:
-          VPS_KEY: ${{ secrets.VPS_KEY }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        
       - name: Deploy on VPS
         run: |
           ssh $VPS_USER@$VPS_HOST "
-            cd /var/www/chola_backend &&
-            git pull &&
-            npm install &&
-            pm2 restart all || pm2 start index.js --name chola_backend
+           mkdir -p /var/www/chola_backend
+           cd /var/www/chola_backend
+           git fetch origin servercode
+           git reset --hard origin/servercode
+           npm install
+           pm2 restart chola_clientbackend || pm2 start index.js --name chola_clientbackend
+           pm2 save
           "
         env:
           VPS_USER: ${{ secrets.VPS_USER }}
