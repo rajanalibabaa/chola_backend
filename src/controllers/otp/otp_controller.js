@@ -1,5 +1,5 @@
 import { sendEmail } from "../../config/email.js";
-import { Registration } from "../../model/registraionSchema_model.js";
+import { Registration } from "../../model/clientRegistration/registraion_model.js";
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { generateToken } from "../../utils/jwt/generateToken.js";
 import { generateOtp } from "../../utils/otp/generate_otp.js";
@@ -45,7 +45,7 @@ export const sendOtp = async (res, req) => {
  
   await sendEmail(exists.email,"OTP")
  
- 
+  
  
  
 };
