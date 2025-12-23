@@ -21,7 +21,7 @@ jobs:
           key: ${{ secrets.VPS_KEY }}
           script: |
             cd /var/www/chola_backend
-            git pull origin main
+            git pull origin servercode
             npm install
-            pm2 restart chola_clientbackend || pm2 start src/index.js --name chola_clientbackend
+            pm2 restart chola_clientbackend || pm2 start index.js --name chola_clientbackend
             pm2 save
