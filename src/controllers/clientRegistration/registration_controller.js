@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import {Registration} from "../model/registraionSchema_model.js";
-import { generateOtp, hashOtp } from "../utils/otp/generate_otp.js";
-import { sendEmail } from "../config/email.js";
-import { otpEmailTemplate } from "../template/otpEmailTemplate.js";
+import {Registration} from "../../model/clientRegistration/registraion_model.js";
+import { generateOtp, hashOtp } from "../../utils/otp/generate_otp.js";
+import { sendEmail } from "../../config/email.js";
+import { otpEmailTemplate } from "../../template/otpEmailTemplate.js";
 
 
 export const createRegistration = async (req, res) => {

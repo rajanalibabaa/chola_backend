@@ -1,5 +1,5 @@
 import express from "express";
-import {createRegistration,validateRegistration,submitRegistrationForm,verifyRegistrationOtp}from "../controller/registration_controller.js";
+import {createRegistration,validateRegistration,submitRegistrationForm,verifyRegistrationOtp}from "../../controllers/clientRegistration/registration_controller.js";
 const router = express.Router();
 
 

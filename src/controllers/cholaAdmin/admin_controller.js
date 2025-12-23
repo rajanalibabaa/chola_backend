@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { Admin } from "../../model/cholaAdmin/admin.js";
+import { Admin } from "../../model/cholaAdmin/admin_model.js";
 
 /* =========================
    Admin Register
