@@ -4,7 +4,7 @@ const RegistrationSchema = new mongoose.Schema(
   {
     token: {
       type: String,
-      required: true,
+      // required: true,
       unique: true,
       index: true,
     },
@@ -36,7 +36,7 @@ const RegistrationSchema = new mongoose.Schema(
     },
 
     otpExpiresAt: {
-      type: Date,
+      type: String,
     },
 
     isOtpVerified: {
@@ -54,8 +54,8 @@ const RegistrationSchema = new mongoose.Schema(
 );
 
 /* Auto delete expired links (MongoDB TTL) */
-RegistrationSchema.index(
-  { expiresAt: 1 },
-  { expireAfterSeconds: 0 }
-);
+// RegistrationSchema.index(
+//   { expiresAt: 1 },
+//   { expireAfterSeconds: 0 }
+// );
 export const Registration = mongoose.model("Registration",RegistrationSchema);
