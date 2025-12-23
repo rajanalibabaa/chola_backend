@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import registrationRoutes from './router/registration_router.js';
-import adminRoutes from './router/cholaAdmin/admin.js';
+import registrationRoutes from './src/router/registration_router.js';
+import adminRoutes from './src/router/cholaAdmin/admin.js';
 
 const app = express();
 
