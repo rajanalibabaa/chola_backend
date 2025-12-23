@@ -54,8 +54,8 @@ const RegistrationSchema = new mongoose.Schema(
 );
 
 /* Auto delete expired links (MongoDB TTL) */
-RegistrationSchema.index(
-  { expiresAt: 1 },
-  { expireAfterSeconds: 0 }
-);
+// RegistrationSchema.index(
+//   { expiresAt: 1 },
+//   { expireAfterSeconds: 0 }
+// );
 export const Registration = mongoose.model("Registration",RegistrationSchema);
