@@ -1,49 +1,23 @@
 import mongoose from "mongoose";
+import { compareValue, hashValue } from "../../utils/bcrypt/hash.js";
 
 const RegistrationSchema = new mongoose.Schema(
   {
-    token: {
-      type: String,
-      // required: true,
-      unique: true,
-      index: true,
-    },
+    name: { type: String },
+    email: { type: String },
+    alternateEmail: { type: String },
+    phone: { type: String },
+    alternatePhone: { type: String },
+    companyName: { type: String },
+    domainName: { type: String },
 
-    expiresAt: {
-      type: Date,
-      required: true,
-      // index: true,
-    },
-
-    isUsed: {
-      type: Boolean,
-      default: false,
-    },
-
-    /* Form Data (filled by user) */
-    name: String,
-    email: String,
-    alternateEmail: String,
-    phone: String,
-    alternatePhone: String,
-    companyName: String,
-    domainName: String,
-
-        /* OTP Fields */
     otp: {
       type: String,
-      select: false,
     },
 
     otpExpiresAt: {
-      type: String,
+      type: Date,
     },
-
-    isOtpVerified: {
-      type: Boolean,
-      default: false,
-    },
-
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -53,9 +27,22 @@ const RegistrationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* Auto delete expired links (MongoDB TTL) */
-// RegistrationSchema.index(
-//   { expiresAt: 1 },
-//   { expireAfterSeconds: 0 }
-// );
-export const Registration = mongoose.model("Registration",RegistrationSchema);
+
+RegistrationSchema.pre("save", function () {
+  if (this.otpExpiresAt && this.otpExpiresAt < new Date()) {
+    this.otp = null;
+    this.otpExpiresAt = null;
+  }
+});
+
+RegistrationSchema.pre("save", async function () {
+  if (!this.isModified("otp")) return;
+  this.otp = await hashValue(this.otp, 10);
+});
+
+
+RegistrationSchema.methods.compareOTP = function (otp) {
+  return compareValue(otp, this.otp);
+};
+
+export const Registration = mongoose.model("Registration", RegistrationSchema);
