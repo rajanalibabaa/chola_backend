@@ -5,7 +5,7 @@ import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { compareValue } from "../../utils/bcrypt/hash.js";
 import { generateToken } from "../../utils/jwt/generateToken.js";
 import { generateOtp } from "../../utils/otp/generate_otp.js";
-import { getExpiryAfter5Minutes } from "../../utils/time/time_utils.js";
+import { getExpiryTime } from "../../utils/time/time_utils.js";
 
 export const sendOtp = async (req, res) => {
   try {
@@ -31,7 +31,7 @@ export const sendOtp = async (req, res) => {
     const payload = {
       id: exists._id,
       email: exists?.email,
-    };
+    };  
 
     const token = generateToken(payload, process.env.OTP_TOKEN, "5m");
 
@@ -41,7 +41,7 @@ export const sendOtp = async (req, res) => {
         .json(new ApiResponse(500, {}, "Token generation failed"));
     }
 
-    const expiresAt = getExpiryAfter5Minutes(5);
+    const expiresAt = getExpiryTime(5);
     exists.otp = newOtp;
     exists.otpExpiresAt = expiresAt;
 
