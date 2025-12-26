@@ -1,62 +1,12 @@
 import crypto from "crypto";
 import { Registration } from "../../model/clientRegistration/registraion_model.js";
-import { generateOtp, hashOtp } from "../../utils/otp/generate_otp.js";
-import { sendEmail } from "../../config/email.js";
-import { otpEmailTemplate } from "../../template/otpEmailTemplate.js";
 
-export const createRegistrationLink = async (req, res) => {
-  try {
-    console.log("Create Registration Request by Admin:", req.admin?.id);
-    const token = crypto.randomBytes(32).toString("hex");
 
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 1 day
-    console.log("Generated Token:", token);
-    const link = await Registration.create({
-      token,
-      expiresAt,
-      createdBy: req.user?.id, // admin id
-    });
 
-    const registrationUrl = `${process.env.FRONTEND_URL}/register/${token}`;
-
-    res.status(201).json({
-      success: true,
-      registrationUrl,
-      expiresAt,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const validateRegistrationLink = async (req, res) => {
-  try {
-    const { token } = req.params;
-
-    const link = await Registration.findOne({ token });
-
-    console.log("Validating Token:", token, "Found Link:", link);
-
-    if (!link) return res.status(404).json({ message: "Invalid link" });
-
-    if (link.isUsed)
-      return res.status(400).json({ message: "Link already used" });
-
-    if (link.expiresAt < new Date())
-      return res.status(400).json({ message: "Link expired" });
-
-    res.status(200).json({
-      success: true,
-      message: "Link valid",
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
 
 export const cholaClientRegistration = async (req, res) => {
   try {
-    const { token } = req.params;
+    const { token } = req.params || req.body;
     const {
       name,
       email,
@@ -111,38 +61,4 @@ export const cholaClientRegistration = async (req, res) => {
   }
 };
 
-export const verifyRegistrationOtp = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const { otp } = req.body;
 
-    const link = await Registration.findOne({ token }).select("+otp");
-
-    if (!link) return res.status(404).json({ message: "Invalid link" });
-
-    if (!link.otp || !link.otpExpiresAt)
-      return res.status(400).json({ message: "OTP not found" });
-
-    if (link.otpExpiresAt < new Date())
-      return res.status(400).json({ message: "OTP expired" });
-
-    const hashedOtp = crypto.createHash("sha256").update(otp).digest("hex");
-
-    if (hashedOtp !== link.otp)
-      return res.status(400).json({ message: "Invalid OTP" });
-
-    /* OTP verified */
-    link.isOtpVerified = true;
-    link.otp = undefined;
-    link.otpExpiresAt = undefined;
-
-    await link.save();
-
-    res.status(200).json({
-      success: true,
-      message: "OTP verified successfully",
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
