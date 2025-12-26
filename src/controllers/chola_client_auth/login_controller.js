@@ -1,5 +1,6 @@
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { compareValue } from "../../utils/bcrypt/hash.js";
+import { generateToken } from "../../utils/jwt/generateToken.js";
 
 export const clientLogin = async (req, res) => {
   const user = req.user;
@@ -24,10 +25,11 @@ export const clientLogin = async (req, res) => {
       return res.json(new ApiResponse(404, null, "OTP not match"));
     }
 
-    user.otp = null;
-    user.otpExpiresAt = null;
+    // user.otp = null;
+    // user.otpExpiresAt = null;
     await user.save();
 
+    delete user.otp
     const payload = {
       id: user._id,
       email: user?.email,
@@ -42,14 +44,15 @@ export const clientLogin = async (req, res) => {
     }
 
     res.cookie("auth_token", token, {
-      httpOnly: true,       // JS cannot access
-      secure: true,         // HTTPS only (use false in local)
-      sameSite: "strict",   // CSRF protection
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
+      httpOnly: true,       
+      secure: true,         
+      sameSite: "strict",   
+      maxAge: 24 * 60 * 60 * 1000 
     });
-    return res.json(new ApiResponse(200, token,user, "user login successfully"));
+    return res.json(new ApiResponse(200, token , "user login successfully"));
   } catch (error) {
     console.error(error);
     return res.json(new ApiResponse(500, {}, "Internal Server Error"));
   }
 };
+
