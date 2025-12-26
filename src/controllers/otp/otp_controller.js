@@ -5,7 +5,8 @@ import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { compareValue } from "../../utils/bcrypt/hash.js";
 import { generateToken } from "../../utils/jwt/generateToken.js";
 import { generateOtp } from "../../utils/otp/generate_otp.js";
-import { getExpiryAfter5Minutes } from "../../utils/time/time_utils.js";
+import { getExpiryTime } from "../../utils/time/time_utils.js";
+import { OTP } from "../../model/otp_model/otp_model.js";
 
 export const sendOtp = async (req, res) => {
   try {
@@ -32,7 +33,7 @@ export const sendOtp = async (req, res) => {
     const payload = {
       id: exists._id,
       email: exists?.email,
-    };
+    };  
 
     const token = generateToken(payload, process.env.OTP_TOKEN, "5m");
 
@@ -44,7 +45,7 @@ export const sendOtp = async (req, res) => {
 
     
 
-    const expiresAt = getExpiryAfter5Minutes(5);
+    const expiresAt = getExpiryTime(5);
     exists.otp = newOtp;
     exists.otpExpiresAt = expiresAt;
 
@@ -94,67 +95,69 @@ export const verifyOtp = async (req, res) => {
 };
 
 
-export const registrationSendOtp = async (req, res) => {
+
+export const sendRegistrationOtp = async (req, res) => {
   try {
-    const email = req.body?.email || req.query?.email;
+    const { email } = req.body;
+    if (!email) return res.json(new ApiResponse(400, null, "Email is required"));
 
-    if (!email) {
-      return res.json(new ApiResponse(400, null, "Email is required"));
+    console.log("Registration OTP request for email :",email)
+    // Find or create registration record
+    let user = await Registration.findOne({ email });
+  
+
+    if (user) {
+      return res.json(new ApiResponse(409, null, "User already registered"));
     }
 
-    /* Check if already registered */
-    const alreadyExists = await Registration.findOne({ email });
-
-    if (alreadyExists) {
-      return res.json(
-        new ApiResponse(409, null, "Email already registered")
-      );
-    }
-
-    /* Generate OTP */
+    // Generate OTP
     const otp = generateOtp();
-    if (!otp) {
-      return res.json(new ApiResponse(500, null, "OTP generation failed"));
+    const otpExpiresAt = getExpiryTime(5);
+
+      if (!otp) {
+      return res.json(new ApiResponse(500, {}, "OTP generation failed"));
     }
 
-    const expiresAt = getExpiryAfter5Minutes(5);
+    const payload = {
+      email: user?.email,
+    };  
 
-    let registration;
+    const token = generateToken(payload, process.env.OTP_TOKEN, "5m");
 
-    /* Create or Update Registration */
-    if (!alreadyExists) {
-      registration = await Registration.create({
-        email,
-        otp,
-        otpExpiresAt: expiresAt,
-      });
-    } else {
-      alreadyExists.otp = otp;
-      alreadyExists.otpExpiresAt = expiresAt;
-      registration = await alreadyExists.save();
+    if (!token) {
+      return res
+        .status(500)
+        .json(new ApiResponse(500, {}, "Token generation failed"));
     }
 
-    /* Generate JWT Token */
-    const token = generateToken(
-      { id: registration._id, email },
-      process.env.OTP_TOKEN,
-      "5m"
-    );
 
-    /* Send Email */
+    // Save OTP in separate OTP collection
+    const otpDoc = new OTP({
+      email: email,
+      otp,
+      otpExpiresAt,
+    });
+    await otpDoc.save();
+
+    console.log("OTP Document saved:", otpDoc);
+
+    // Send OTP via email
     await sendEmail({
       to: email,
-      subject: "OTP Verification – MrFranchise",
-      html: otpEmailTemplate("Chola Client", otp),
+      subject: "Verify your email – MrFranchise",
+      html: `Your OTP is <b>${otp}</b>. It expires in 5 minutes.`,
     });
 
-    return res.json(
-      new ApiResponse(200, { token }, "OTP sent successfully")
-    );
+    return res.json(new ApiResponse(200, { otpId: otpDoc._id }, "OTP sent successfully"));
   } catch (error) {
     console.error(error);
-    return res.json(
-      new ApiResponse(500, null, "Internal Server Error")
-    );
+    return res.json(new ApiResponse(500, null, "Internal Server Error"));
   }
-};
+
+
+}
+
+
+// export const verifyOtp = async (req, res) => {
+
+// }

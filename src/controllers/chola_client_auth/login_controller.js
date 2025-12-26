@@ -40,6 +40,13 @@ export const clientLogin = async (req, res) => {
         .status(500)
         .json(new ApiResponse(500, {}, "Token generation failed"));
     }
+
+    res.cookie("auth_token", token, {
+      httpOnly: true,       // JS cannot access
+      secure: true,         // HTTPS only (use false in local)
+      sameSite: "strict",   // CSRF protection
+      maxAge: 24 * 60 * 60 * 1000 // 1 day
+    });
     return res.json(new ApiResponse(200, token,user, "user login successfully"));
   } catch (error) {
     console.error(error);

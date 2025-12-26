@@ -1,3 +1,3 @@
-export function getExpiryAfter5Minutes() {
-  return new Date(Date.now() + 5 * 60 * 1000);
+export function getExpiryTime(min = 5) {
+  return new Date(Date.now() + min * 60 * 1000);
 }
