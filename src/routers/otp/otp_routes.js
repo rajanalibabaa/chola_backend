@@ -7,3 +7,6 @@ otpRouter.post("/otp/send",sendOtp)
 otpRouter.post("/verifyotp/:token",verifyOtp)
 otpRouter.post("/resendotp",resendOtp)
 
+
+
+

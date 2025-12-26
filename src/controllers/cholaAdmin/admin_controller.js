@@ -45,7 +45,6 @@ export const registerAdmin = async (req, res) => {
   }
 };
 
-
 /* =========================
    Admin Login
 ========================= */
@@ -84,3 +83,5 @@ export const loginAdmin = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+
