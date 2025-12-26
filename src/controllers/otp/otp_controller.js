@@ -59,7 +59,6 @@ export const sendOtp = async (req, res) => {
     return res.json(new ApiResponse(500, {}, "Internal Server Error"));
   }
 };
-
 export const verifyOtp = async (req, res) => {
   const user = req.user;
   const otp = req.body?.otp || req.query?.otp;
@@ -94,6 +93,7 @@ export const verifyOtp = async (req, res) => {
   }
 };
 export const resendOtp = async (req, res) => {
-  
 };
+
+
   
