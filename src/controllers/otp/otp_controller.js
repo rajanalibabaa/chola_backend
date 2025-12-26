@@ -22,7 +22,7 @@ export const sendOtp = async (req, res) => {
     }
 
     const newOtp = generateOtp();
-    console.log("newOtp :",newOtp)
+    console.log("newOtp :", newOtp);
 
     if (!newOtp) {
       return res.json(new ApiResponse(500, {}, "OTP generation failed"));
@@ -53,7 +53,7 @@ export const sendOtp = async (req, res) => {
     //       html: otpEmailTemplate({ email, newOtp }),
     //     });
 
-    return res.json(new ApiResponse(200, { token }, "OTP sent successfully"));
+    return res.json(new ApiResponse(200, { token, }, "OTP sent successfully"));
   } catch (error) {
     console.error(error);
     return res.json(new ApiResponse(500, {}, "Internal Server Error"));
@@ -62,31 +62,36 @@ export const sendOtp = async (req, res) => {
 export const verifyOtp = async (req, res) => {
   const user = req.user;
   const otp = req.body?.otp || req.query?.otp;
-  if (!user) {
-    return res.json(new ApiResponse(404, null, "User not recognized"));
-  }
-  if (!otp) {
-    return res.json(
-      new ApiResponse(400, null, "OTP required, please enter OTP")
-    );
-  }
-  if (Date.now() > user.otpExpiresAt) {
-    return res.json(new ApiResponse(404, null, "OTP expired"));
-  }
+  try {
+    if (!user) {
+      return res.json(new ApiResponse(404, null, "User not recognized"));
+    }
+    if (!otp) {
+      return res.json(
+        new ApiResponse(400, null, "OTP required, please enter OTP")
+      );
+    }
+    if (Date.now() > user.otpExpiresAt) {
+      return res.json(new ApiResponse(404, null, "OTP expired"));
+    }
 
-  const isvalid = await compareValue(String(otp),user.otp)
-  console.log("isvalid :",isvalid)
+    const isvalid = await compareValue(String(otp), user.otp);
+    console.log("isvalid :", isvalid);
 
-  if (!isvalid) {
-    return res.json(new ApiResponse(404, null, "OTP not match"));
+    if (!isvalid) {
+      return res.json(new ApiResponse(404, null, "OTP not match"));
+    }
+
+    user.otp = null;
+    user.otpExpiresAt = null;
+    await user.save();
+
+    return res.json(new ApiResponse(200, true, "OTP verified successfully"));
+  } catch (error) {
+    console.error(error);
+    return res.json(new ApiResponse(500, {}, "Internal Server Error"));
   }
-
-  user.otp = null;
-  user.otpExpiresAt = null;
-  await user.save();
-
-  return res.json(new ApiResponse(200, null, "OTP verified successfully"));
 };
-export const resendOtp = async () => {};
-
-
+export const resendOtp = async (req, res) => {
+  
+};
