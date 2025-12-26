@@ -11,6 +11,7 @@ export const sendOtp = async (req, res) => {
   try {
     const email = req.body?.email || req.query?.email;
 
+    console.log("email :",email)
     if (!email) {
       return res.json(new ApiResponse(400, {}, "Email is required"));
     }
@@ -49,7 +50,7 @@ export const sendOtp = async (req, res) => {
 
     await exists.save();
 
-
+      
     await sendEmail({
           to: email,
           subject: "OTP Verification – MrFranchise",
@@ -91,6 +92,69 @@ export const verifyOtp = async (req, res) => {
 
   return res.json(new ApiResponse(200, null, "OTP verified successfully"));
 };
-export const resendOtp = async (req, res) => {
 
+
+export const registrationSendOtp = async (req, res) => {
+  try {
+    const email = req.body?.email || req.query?.email;
+
+    if (!email) {
+      return res.json(new ApiResponse(400, null, "Email is required"));
+    }
+
+    /* Check if already registered */
+    const alreadyExists = await Registration.findOne({ email });
+
+    if (alreadyExists) {
+      return res.json(
+        new ApiResponse(409, null, "Email already registered")
+      );
+    }
+
+    /* Generate OTP */
+    const otp = generateOtp();
+    if (!otp) {
+      return res.json(new ApiResponse(500, null, "OTP generation failed"));
+    }
+
+    const expiresAt = getExpiryAfter5Minutes(5);
+
+    let registration;
+
+    /* Create or Update Registration */
+    if (!alreadyExists) {
+      registration = await Registration.create({
+        email,
+        otp,
+        otpExpiresAt: expiresAt,
+      });
+    } else {
+      alreadyExists.otp = otp;
+      alreadyExists.otpExpiresAt = expiresAt;
+      registration = await alreadyExists.save();
+    }
+
+    /* Generate JWT Token */
+    const token = generateToken(
+      { id: registration._id, email },
+      process.env.OTP_TOKEN,
+      "5m"
+    );
+
+    /* Send Email */
+    await sendEmail({
+      to: email,
+      subject: "OTP Verification – MrFranchise",
+      html: otpEmailTemplate("Chola Client", otp),
+    });
+
+    return res.json(
+      new ApiResponse(200, { token }, "OTP sent successfully")
+    );
+  } catch (error) {
+    console.error(error);
+    return res.json(
+      new ApiResponse(500, null, "Internal Server Error")
+    );
+  }
 };
