@@ -1,12 +1,8 @@
-import crypto from "crypto";
 import { Registration } from "../../model/clientRegistration/registraion_model.js";
-
-
-
+import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 
 export const cholaClientRegistration = async (req, res) => {
   try {
-    const { token } = req.params || req.body;
     const {
       name,
       email,
@@ -17,16 +13,21 @@ export const cholaClientRegistration = async (req, res) => {
       domainName,
     } = req.body;
 
-    const link = await Registration.findOne({ token });
+    if (!email || !domainName) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, {}, "Email and domainName are required"));
+    }
 
-    if (!link) return res.status(404).json({ message: "Invalid link" });
-    if (link.isUsed)
-      return res.status(400).json({ message: "Link already used" });
-    if (link.expiresAt < new Date())
-      return res.status(400).json({ message: "Link expired" });
+    const exists = await Registration.findOne({ email });
 
-    /* Save form data */
-    Object.assign(link, {
+    if (exists) {
+      return res
+        .status(409)
+        .json(new ApiResponse(409, {}, "User already exists"));
+    }
+
+    const user = new Registration({
       name,
       email,
       alternateEmail,
@@ -34,31 +35,34 @@ export const cholaClientRegistration = async (req, res) => {
       alternatePhone,
       companyName,
       domainName,
-      isUsed: true,
     });
 
-    /* Generate OTP */
-    const otp = generateOtp();
+    const savedUser = await user.save();
 
-    link.otp = hashOtp(otp);
-    link.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    if (!savedUser) {
+      return res
+        .status(500)
+        .json(new ApiResponse(500, {}, "Registration failed"));
+    }
 
-    await link.save();
-
-    /* Send OTP Email */
-    await sendEmail({
-      to: email,
-      subject: "OTP Verification – MrFranchise",
-      html: otpEmailTemplate({ name, otp }),
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "OTP sent to email. Please verify.",
-    });
+    return res
+      .status(201)
+      .json(new ApiResponse(201, savedUser, "Client registered successfully"));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json(new ApiResponse(500, {}, error.message));
   }
 };
 
+export const cholaClients = async (req, res) => {
+  const data = await Registration.find({});
 
+  if (!data && data.length < 0) {
+    return res
+      .status(400)
+      .json(new ApiResponse(400, {}, "Client not register yet"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(400, data, "CLient data fetch successfully"));
+};

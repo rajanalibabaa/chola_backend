@@ -68,7 +68,7 @@ export const loginAdmin = async (req, res) => {
       id: admin._id,
       role: admin.role,
     }
-    const token = generateToken(payload,process.env.JWT_SECRET,'1m');
+    const token = generateToken(payload,process.env.JWT_SECRET,'1d');
 
     return res.status(200).json({
       success: true,
