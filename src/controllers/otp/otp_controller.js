@@ -2,6 +2,7 @@ import { sendEmail } from "../../config/email.js";
 import { Registration } from "../../model/clientRegistration/registraion_model.js";
 import { otpEmailTemplate } from "../../template/otpEmailTemplate.js";
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
+import { compareValue } from "../../utils/bcrypt/hash.js";
 import { generateToken } from "../../utils/jwt/generateToken.js";
 import { generateOtp } from "../../utils/otp/generate_otp.js";
 import { getExpiryAfter5Minutes } from "../../utils/time/time_utils.js";
@@ -21,7 +22,7 @@ export const sendOtp = async (req, res) => {
     }
 
     const newOtp = generateOtp();
-    // console.log("newotp :",newOtp)
+    console.log("newOtp :",newOtp)
 
     if (!newOtp) {
       return res.json(new ApiResponse(500, {}, "OTP generation failed"));
@@ -32,11 +33,7 @@ export const sendOtp = async (req, res) => {
       email: exists?.email,
     };
 
-    // console.log("payload :",payload)
-
     const token = generateToken(payload, process.env.OTP_TOKEN, "5m");
-
-    // console.log("token :",token)
 
     if (!token) {
       return res
@@ -45,19 +42,8 @@ export const sendOtp = async (req, res) => {
     }
 
     const expiresAt = getExpiryAfter5Minutes(5);
-
-    // console.log("expiresAt :",expiresAt)
-
-    res.cookie("otp_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: expiresAt,
-    });
-
-    // console.log("cookie",req.cookies.otp_token)
     exists.otp = newOtp;
-    exists.expiresAt = expiresAt;
+    exists.otpExpiresAt = expiresAt;
 
     await exists.save();
 
@@ -67,12 +53,40 @@ export const sendOtp = async (req, res) => {
     //       html: otpEmailTemplate({ email, newOtp }),
     //     });
 
-    return res.json(new ApiResponse(200, {}, "OTP sent successfully"));
+    return res.json(new ApiResponse(200, { token }, "OTP sent successfully"));
   } catch (error) {
     console.error(error);
     return res.json(new ApiResponse(500, {}, "Internal Server Error"));
   }
 };
+export const verifyOtp = async (req, res) => {
+  const user = req.user;
+  const otp = req.body?.otp || req.query?.otp;
+  if (!user) {
+    return res.json(new ApiResponse(404, null, "User not recognized"));
+  }
+  if (!otp) {
+    return res.json(
+      new ApiResponse(400, null, "OTP required, please enter OTP")
+    );
+  }
+  if (Date.now() > user.otpExpiresAt) {
+    return res.json(new ApiResponse(404, null, "OTP expired"));
+  }
 
-export const verifyOtp = async () => {};
+  const isvalid = await compareValue(String(otp),user.otp)
+  console.log("isvalid :",isvalid)
+
+  if (!isvalid) {
+    return res.json(new ApiResponse(404, null, "OTP not match"));
+  }
+
+  user.otp = null;
+  user.otpExpiresAt = null;
+  await user.save();
+
+  return res.json(new ApiResponse(200, null, "OTP verified successfully"));
+};
 export const resendOtp = async () => {};
+
+
