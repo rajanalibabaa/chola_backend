@@ -2,7 +2,7 @@ import { Registration } from "../../model/clientRegistration/registraion_model.j
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { verifyToken } from "../../utils/jwt/verifyToken.js";
 
-export const verify_otp_token = async (req, res, next) => {
+export const verify_client_token = async (req, res, next) => {
   try {
     const token =
       req.body?.token ||
@@ -39,7 +39,7 @@ export const verify_otp_token = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Error in verify_otp_token:", error);
+    console.error("Error in verify_client_token:", error);
     return res.status(500).json(
       new ApiResponse(500, null, "Internal server error while verifying token")
     );
