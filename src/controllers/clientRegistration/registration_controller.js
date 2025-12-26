@@ -2,8 +2,6 @@ import crypto from "crypto";
 import { Registration } from "../../model/clientRegistration/registraion_model.js";
 
 
-
-
 export const cholaClientRegistration = async (req, res) => {
   try {
     const { token } = req.params || req.body;
@@ -17,7 +15,7 @@ export const cholaClientRegistration = async (req, res) => {
       domainName,
     } = req.body;
 
-    const link = await Registration.findOne({ token });
+    const link = await Registration.findOne({ token });  
 
     if (!link) return res.status(404).json({ message: "Invalid link" });
     if (link.isUsed)
