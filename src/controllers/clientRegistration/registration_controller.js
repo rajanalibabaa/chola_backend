@@ -13,23 +13,24 @@ export const cholaClientRegistration = async (req, res) => {
       companyName,
       domainName,
     } = req.body;
-
+console.log("req.body :", req.body);
     if (!email || !domainName) {
       return res
         .status(400)
         .json(new ApiResponse(400, {}, "Email and domainName are required"));
     }
 
-    const exists = await Registration.findOne({ email });
+    const exists = await Registration.findOne({ $or: [{ email }, { domainName }] });
+    console.log("exists :", exists);
 
-    if (exists) {
+    if (exists.length > 0) {
       return res
         .status(409)
         .json(new ApiResponse(409, {}, "User already exists"));
     }
 
-    const generateOTP = uuid()
-    const user = new Registration({
+    const generate = uuid();
+    const savedUser = await Registration.create({
       name,
       email,
       alternateEmail,
@@ -37,11 +38,10 @@ export const cholaClientRegistration = async (req, res) => {
       alternatePhone,
       companyName,
       domainName,
-      uuid:generateOTP
+      uuid: generate
     });
 
-    const savedUser = await user.save();
-
+    
     if (!savedUser) {
       return res
         .status(500)

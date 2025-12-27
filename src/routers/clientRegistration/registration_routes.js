@@ -4,6 +4,6 @@ import { adminAuth } from "../../middleware/cholaAdmin/adminAuth.js";
 const router = express.Router();
 
 
-router.post("/:token",adminAuth, cholaClientRegistration);
+router.post("/registration/", cholaClientRegistration);
 
 export default router;

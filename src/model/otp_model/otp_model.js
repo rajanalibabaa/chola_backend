@@ -11,9 +11,9 @@ const OtpSchema = new mongoose.Schema(
 );
 
 // Hash OTP before saving
-OtpSchema.pre("save", async function () {
-  if (!this.isModified("otp")) return;
-  this.otp = await hashValue(this.otp, 10);
-});
+// OtpSchema.pre("save", async function () {
+//   if (!this.isModified("otp")) return;
+//   this.otp = await hashValue(this.otp, 10);
+// });
 
 export const OTP = mongoose.model("OTP", OtpSchema);
