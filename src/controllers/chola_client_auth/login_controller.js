@@ -25,8 +25,8 @@ export const clientLogin = async (req, res) => {
       return res.json(new ApiResponse(404, null, "OTP not match"));
     }
 
-    // user.otp = null;
-    // user.otpExpiresAt = null;
+    user.otp = null;
+    user.otpExpiresAt = null;
     await user.save();
 
     delete user.otp

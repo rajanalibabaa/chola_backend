@@ -52,11 +52,11 @@ export const sendOtp = async (req, res) => {
     await exists.save();
 
       
-    await sendEmail({
-          to: email,
-          subject: "OTP Verification – MrFranchise",
-          html: otpEmailTemplate( "Chola client", newOtp ),
-        });
+    // await sendEmail({
+    //       to: email,
+    //       subject: "OTP Verification – MrFranchise",
+    //       html: otpEmailTemplate( "Chola client", newOtp ),
+    //     });
 
     return res.json(new ApiResponse(200, { token }, "OTP sent successfully"));
   } catch (error) {
