@@ -19,7 +19,7 @@ export const clientLogin = async (req, res) => {
     }
 
     const isvalid = await compareValue(String(otp), user.otp);
-    console.log("isvalid :", isvalid);
+    
 
     if (!isvalid) {
       return res.json(new ApiResponse(404, null, "OTP not match"));
@@ -29,7 +29,7 @@ export const clientLogin = async (req, res) => {
     user.otpExpiresAt = null;
     await user.save();
 
-    delete user.otp
+    delete user.otp;
     const payload = {
       id: user._id,
       email: user?.email,
@@ -44,15 +44,15 @@ export const clientLogin = async (req, res) => {
     }
 
     res.cookie("auth_token", token, {
-      httpOnly: true,       
-      secure: true,         
-      sameSite: "strict",   
-      maxAge: 24 * 60 * 60 * 1000 
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     });
-    return res.json(new ApiResponse(200, token , "user login successfully"));
+
+    return res.json(new ApiResponse(200, {token,path:user.domainName}, "user login successfully"));
   } catch (error) {
     console.error(error);
     return res.json(new ApiResponse(500, {}, "Internal Server Error"));
   }
 };
-
