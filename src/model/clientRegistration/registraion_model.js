@@ -13,7 +13,6 @@ const RegistrationSchema = new mongoose.Schema(
     alternatePhone: { type: String },
     companyName: { type: String },
     domainName: { type: String },
-    isEmailVerified: { type: Boolean, default: false },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",

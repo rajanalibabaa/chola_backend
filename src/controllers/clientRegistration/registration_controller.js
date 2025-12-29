@@ -13,35 +13,42 @@ export const cholaClientRegistration = async (req, res) => {
       companyName,
       domainName,
     } = req.body;
-console.log("req.body :", req.body);
+    console.log("req.body :", req.body);
     if (!email || !domainName) {
       return res
         .status(400)
         .json(new ApiResponse(400, {}, "Email and domainName are required"));
     }
 
-    const exists = await Registration.findOne({ $or: [{ email }, { domainName }] });
-    console.log("exists :", exists);
+    const exists = await Registration.findOne({
+      $or: [{ email }, { domainName }],
+    });
+   
 
-    if (exists.length > 0) {
+    if (exists) {
       return res
         .status(409)
-        .json(new ApiResponse(409, {}, "User already exists"));
+        .json(new ApiResponse(409, {}, "Email or Domain name already exists"));
     }
 
-    const generate = uuid();
-    const savedUser = await Registration.create({
+    const generate = await uuid();
+    console.log("generate uuid :", generate);
+    // console.log("generate uuid type:", Registration.schema);
+    
+    const newUser = new Registration({
+      uuid: generate,
       name,
       email,
       alternateEmail,
+
       phone,
       alternatePhone,
       companyName,
       domainName,
-      uuid: generate
-    });
-
+    }); 
+    const savedUser = await newUser.save();
     
+
     if (!savedUser) {
       return res
         .status(500)
@@ -67,5 +74,5 @@ export const cholaClients = async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(400, data, "CLient data fetch successfully"));
+    .json(new ApiResponse(200, data, "Client data fetch successfully"));
 };
