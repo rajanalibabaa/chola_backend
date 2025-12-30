@@ -302,8 +302,26 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
   }
 };
 
+export const eagleCeramicProductSizeDeletebyID = async (req, res) => {
 
+  try {
+    const { uuid } = req.params;
+    if (!uuid) {
+      return res.status(400).json(new ApiResponse(400, {}, "Product UUID is required"));
+    }
+    const existingProduct = await EagleCeramicProductSize.findOne({ uuid });
 
+    if (!existingProduct) {
+      return res.status(404).json(new ApiResponse(404, {}, "Product not found"));
+    }
+    await EagleCeramicProductSize.deleteOne({ uuid });
+
+    return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
+  } catch (error) {
+    console.error("Delete Product Size Error:", error);
+    return res.status(500).json(new ApiResponse(500, {}, "Internal server error"));
+  } 
+};
 
 
 
