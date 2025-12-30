@@ -34,6 +34,11 @@ const eagleCeramicCatalogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "EagleCeramicProductSize",
+    required: true,
+  }
 });
 
 export const EagleCeramicCatalog = mongoose.model(
