@@ -8,25 +8,25 @@ const eagleCeramicCatalogSchema = new mongoose.Schema({
   },
   productName: {
     type: String,
-    required: true,
+    // required: true,
   },
   productSize: {
     type: String,
-    required: true,
+    // required: true,
   },
   title: {
     type: String,
-    required: true,
+    // required: true,
   },
-  Description: {
+  description: {
     type: String,
-    required: true,
+    // required: true,
   },
-  ButtonText: {
+  buttonText: {
     type: String,
-    required: true,
+    // required: true,
   },
-  ImageUrl: {
+  imageUrl: {
     type: String,
     required: true,
   },
@@ -37,7 +37,6 @@ const eagleCeramicCatalogSchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "EagleCeramicProductSize",
-    required: true,
   }
 });
 
