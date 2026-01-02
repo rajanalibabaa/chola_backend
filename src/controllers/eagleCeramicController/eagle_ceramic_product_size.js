@@ -323,7 +323,32 @@ export const eagleCeramicProductSizeDeletebyID = async (req, res) => {
   } 
 };
 
+export const eagleCeramicProductSizeDropdown = async (req, res) => {
 
+  try {
 
+    const data = []
 
+    const products = await EagleCeramicProductSize.find({});
 
+    if (!products || products.length === 0) {
+      return res.status(404).json(new ApiResponse(404, data, "No products found"));
+    }
+    products.forEach(product => {
+      const obj = {
+        id: product.uuid,
+        productName: product.productName,
+        productSizes: []
+      };
+      product.productSizes.forEach(sizeItem => {
+        obj.productSizes.push(sizeItem.size);
+      });
+      data.push(obj);
+    });
+
+    return res.status(200).json(new ApiResponse(200, data, "Products retrieved successfully"));
+  } catch (error) {
+    console.error("Error retrieving products:", error);
+    return res.status(500).json(new ApiResponse(500, {}, "Internal server error"));
+  }
+}

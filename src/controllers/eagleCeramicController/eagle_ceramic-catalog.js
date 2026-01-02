@@ -163,3 +163,38 @@ export const deleteEagleCeramicCatalogById = async (req, res) => {
     return res.json(new ApiResponse(500, null, "Internal server error"));
   }
 };
+
+export const updateEagleCeramicCatalogById = async (req, res) => {
+  const id = req.params.catalogId || req.params.id || req.body.id || req.body.productId;
+  const { productName, productSize, title, description, buttonText,  } = req.body;
+  const imageFile = req.files["image"] ? req.files["image"][0] : null;
+  const pdfFile = req.files["pdf"] ? req.files["pdf"][0] : null;
+    
+
+  try {
+
+    
+    const updateData = {};
+
+    if (productName) updateData.productName = productName;
+    if (productSize) updateData.productSize = productSize;
+    if (title) updateData.title = title;
+    if (description) updateData.description = description;
+    if (buttonText) updateData.buttonText = buttonText;
+    const updatedEntry = await EagleCeramicCatalog.findOneAndUpdate(
+      { uuid: id },
+      { $set: updateData },
+      { new: true }
+    );
+    if (!updatedEntry) {
+      return res.json(new ApiResponse(404, null, "Catalog entry not found"));
+    }
+
+    return res.json(
+      new ApiResponse(200, updatedEntry, "Catalog entry updated successfully")
+    );
+  } catch (error) {
+    console.error("Error updating catalog entry:", error);
+    return res.json(new ApiResponse(500, null, "Internal server error"));
+  }
+};
