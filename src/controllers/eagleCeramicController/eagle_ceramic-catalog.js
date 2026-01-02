@@ -63,3 +63,4 @@ export const eagleCeramicCatalogCreate = async (req, res) => {
     return res.json(new ApiResponse(500, null, "Internal server error"));
   }
 };
+
