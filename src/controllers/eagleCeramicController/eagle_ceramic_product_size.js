@@ -1,54 +1,75 @@
-
-import  {uuid}  from "../../utils/uuid/generateuuid.js";
+import { uuid } from "../../utils/uuid/generateuuid.js";
 import { EagleCeramicProductSize } from "../../model/eagleCeramicSchema/eagle_ceramic_product_size.js";
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import mongoose from "mongoose";
+import {uploadToR2} from "../../services/r2Upload.service.js";
+import { cholaClientsList } from "../../utils/cholaClient/cholaClientsList.js";
 
+import { deleteFromR2 } from "../../services/r2Upload.service.js";
+import { EagleCeramicCatalog } from "../../model/eagleCeramicSchema/eagle_ceramic_catalog.js";
 
 export const eagleCeramicProductSizeCreate = async (req, res) => {
   try {
     const { productName, productSizes } = req.body;
 
+
+    console.log('Create request received:', { productName, productSizes });
+    console.log('Files received:', req.files);
+
     /* Validation */
     if (!productName) {
-      return res.status(400).json(
-        new ApiResponse(400, {}, "Product name is required")
-      );
+      return res
+        .status(400)
+        .json(new ApiResponse(400, {}, "Product name is required"));
     }
 
-    if (!productSizes || !Array.isArray(productSizes) || productSizes.length === 0) {
-      return res.status(400).json(
-        new ApiResponse(400, {}, "Product sizes array is required")
-      );
+    if (
+      !productSizes ||
+      !Array.isArray(productSizes) ||
+      productSizes.length === 0
+    ) {
+      return res
+        .status(400)
+        .json(new ApiResponse(400, {}, "Product sizes array is required"));
     }
 
     for (const sizeItem of productSizes) {
       if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
-        return res.status(400).json(
-          new ApiResponse(400, {}, "Each product size must include size, title, and description")
-        );
+        return res
+          .status(400)
+          .json(
+            new ApiResponse(
+              400,
+              {},
+              "Each product size must include size, title, and description"
+            )
+          );
       }
     }
 
     /* Duplicate check */
-    const existingProduct = await EagleCeramicProductSize.findOne({ productName });
+    const existingProduct = await EagleCeramicProductSize.findOne({
+      productName,
+    });
     if (existingProduct) {
-      return res.status(409).json(
-        new ApiResponse(409, {}, "Product already exists")
-      );
+      return res
+        .status(409)
+        .json(new ApiResponse(409, {}, "Product already exists"));
     }
 
     /* Images */
     const images = req.files?.image || [];
 
     if (images.length !== productSizes.length) {
-      return res.status(400).json(
-        new ApiResponse(
-          400,
-          {},
-          "Number of images must match number of product sizes"
-        )
-      );
+      return res
+        .status(400)
+        .json(
+          new ApiResponse(
+            400,
+            {},
+            "Number of images must match number of product sizes"
+          )
+        );
     }
 
     /* Upload images to R2 and map to sizes */
@@ -66,7 +87,7 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
 
       updatedProductSizes.push({
         ...productSizes[i],
-        image: uploadedImage
+        image: uploadedImage,
       });
     }
 
@@ -77,22 +98,28 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
       productSizes: updatedProductSizes,
     });
 
-    return res.status(201).json(
-      new ApiResponse(201, newProductSize, "Product sizes created successfully")
-    );
-
+    return res
+      .status(201)
+      .json(
+        new ApiResponse(
+          201,
+          newProductSize,
+          "Product sizes created successfully"
+        )
+      );
   } catch (error) {
     console.error("Create Product Size Error:", error);
-    return res.status(500).json(
-      new ApiResponse(500, {}, "Internal server error")
-    );
+    return res
+      .status(500)
+      .json(new ApiResponse(500, {}, "Internal server error"));
   }
 };
 
-
 export const eagleCeramicProductSizeGetAll = async (req, res) => {
   try {
-    const productSizesdatas = await EagleCeramicProductSize.find().sort({ createdAt: -1 });
+    const productSizesdatas = await EagleCeramicProductSize.find().sort({
+      createdAt: -1,
+    });
 
     if (!productSizesdatas || productSizesdatas.length === 0) {
       return res
@@ -102,7 +129,13 @@ export const eagleCeramicProductSizeGetAll = async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, productSizesdatas, "Product sizes fetched successfully"));
+      .json(
+        new ApiResponse(
+          200,
+          productSizesdatas,
+          "Product sizes fetched successfully"
+        )
+      );
   } catch (error) {
     console.error("Get Product Sizes Error:", error);
 
@@ -115,275 +148,303 @@ export const eagleCeramicProductSizeGetAll = async (req, res) => {
 export const eagleCeramicProductSizeUpdate = async (req, res) => {
   try {
     const { uuid } = req.params;
-    const { productName, productSizes, sizesToDelete } = req.body;
+    let { productName, productSizes, sizesToDelete } = req.body;
 
-    console.log('Update request received:', { uuid, productName, productSizes, sizesToDelete });
+    /* Parse JSON from FormData */
+    if (typeof productSizes === "string") {
+      productSizes = JSON.parse(productSizes);
+    }
+    if (typeof sizesToDelete === "string") {
+      sizesToDelete = JSON.parse(sizesToDelete);
+    }
+
+    console.log('=== UPDATE DEBUG ===');
+    console.log('Parsed productSizes:', JSON.stringify(productSizes, null, 2));
+    console.log('sizesToDelete:', sizesToDelete);
 
     if (!uuid) {
-      return res.status(400).json({
-        success: false,
-        message: "Product UUID is required",
-      });
+      return res
+        .status(400)
+        .json(new ApiResponse(400, {}, "Product UUID is required"));
     }
 
     const existingProduct = await EagleCeramicProductSize.findOne({ uuid });
 
     if (!existingProduct) {
-      return res.status(404).json(
-        new ApiResponse(404, {}, "Product not found")
+      return res
+        .status(404)
+        .json(new ApiResponse(404, {}, "Product not found"));
+    }
+
+    const images = req.files?.image || [];
+    console.log('Number of new images received:', images.length);
+
+    /* Clone current sizes */
+    let updatedSizes = [...existingProduct.productSizes];
+
+    /* DELETE SIZES */
+    if (Array.isArray(sizesToDelete) && sizesToDelete.length > 0) {
+      updatedSizes = updatedSizes.filter(
+        (s) => !sizesToDelete.includes(s._id.toString())
       );
     }
 
-    console.log('Existing product sizes:', JSON.stringify(existingProduct.productSizes, null, 2));
+    /* ✅ Track image index separately */
+    let imageIndex = 0;
 
-    // Get current product sizes
-    const currentSizes = existingProduct.productSizes || [];
-    
-    // Start with existing sizes
-    let updatedSizes = [...currentSizes];
-
-    // Handle deletions
-    if (sizesToDelete && Array.isArray(sizesToDelete)) {
-      console.log('Sizes to delete:', sizesToDelete);
-      
-      // Filter out sizes to delete
-      updatedSizes = updatedSizes.filter(size => {
-        if (!size || !size._id) return true;
-        
-        const sizeIdStr = size._id.toString();
-        return !sizesToDelete.some(deleteId => {
-          const deleteIdStr = String(deleteId).trim();
-          return sizeIdStr === deleteIdStr;
-        });
-      });
-    }
-
-    // Handle updates and additions
-    if (productSizes && Array.isArray(productSizes)) {
-      console.log('Processing productSizes:', JSON.stringify(productSizes, null, 2));
-      
+    /* UPDATE / ADD SIZES */
+    if (Array.isArray(productSizes)) {
       for (let i = 0; i < productSizes.length; i++) {
         const sizeItem = productSizes[i];
-        
-        if (!sizeItem || typeof sizeItem !== 'object') {
-          console.log(`Skipping invalid size item at index ${i}:`, sizeItem);
-          continue;
+
+        console.log(`Processing size ${i}:`, {
+          _id: sizeItem._id,
+          size: sizeItem.size,
+          hasNewImage: sizeItem.hasNewImage,
+          existingImage: sizeItem.existingImage ? 'present' : 'none'
+        });
+
+        if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
+          return res.status(400).json(
+            new ApiResponse(
+              400,
+              {},
+              "Each product size must include size, title, and description"
+            )
+          );
         }
-        
-        console.log(`Processing size item ${i}:`, sizeItem);
-        
-        // Check if this is an update (has _id) or new (no _id)
+
+        /* UPDATE EXISTING SIZE */
         if (sizeItem._id) {
-          // UPDATE EXISTING SIZE
-          console.log(`Updating existing size with ID: ${sizeItem._id}`);
-          
-          // Validate required fields for update
-          if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
-            return res.status(400).json(
-              new ApiResponse(400, {}, "Updated product size must include size, title, and description")
-            );
-          }
+          const index = updatedSizes.findIndex(
+            (s) => s._id.toString() === sizeItem._id.toString()
+          );
 
-          if (!sizeItem.size.trim() || !sizeItem.title.trim() || !sizeItem.description.trim()) {
-            return res.status(400).json(
-              new ApiResponse(400, {}, "Size, title, and description cannot be empty")
-            );
-          }
-
-          // Convert the incoming ID to string for comparison
-          const incomingIdStr = String(sizeItem._id).trim();
-          
-          // Find the index of the size to update
-          let foundIndex = -1;
-          
-          for (let j = 0; j < updatedSizes.length; j++) {
-            const existingSize = updatedSizes[j];
-            if (!existingSize || !existingSize._id) continue;
+          if (index === -1) {
+            // Size might have been deleted, skip it
+            console.log(`Size with _id ${sizeItem._id} not found, might be new`);
             
-            const existingIdStr = existingSize._id.toString();
+            // Treat as new size if not found
+            let imageUrl = null;
             
-            // Compare string representations
-            if (existingIdStr === incomingIdStr) {
-              foundIndex = j;
-              break;
+            if (sizeItem.hasNewImage && images[imageIndex]) {
+              const uploadedImage = await uploadToR2({
+                file: images[imageIndex],
+                folderName: cholaClientsList.egleCeramic,
+                fileType: "images",
+                mimetype: images[imageIndex].mimetype,
+              });
+              imageUrl = uploadedImage.url || uploadedImage;
+              imageIndex++;
+            } else if (sizeItem.existingImage) {
+              imageUrl = sizeItem.existingImage;
             }
+            
+            if (imageUrl) {
+              updatedSizes.push({
+                _id: new mongoose.Types.ObjectId(),
+                size: sizeItem.size.trim(),
+                title: sizeItem.title.trim(),
+                description: sizeItem.description.trim(),
+                image: imageUrl,
+              });
+            }
+            continue;
           }
-          
-          if (foundIndex !== -1) {
-            // Update the existing size
-            console.log(`Found and updating size at index ${foundIndex}`);
-            updatedSizes[foundIndex] = {
-              _id: updatedSizes[foundIndex]._id, // Keep the original ObjectId
-              size: sizeItem.size.trim(),
-              title: sizeItem.title.trim(),
-              description: sizeItem.description.trim()
-            };
-          } else {
-            console.log(`Size with ID ${incomingIdStr} not found. Available IDs:`, 
-              updatedSizes.map(s => s?._id?.toString()).filter(Boolean));
-            return res.status(404).json(
-              new ApiResponse(404, {}, `Size with ID ${sizeItem._id} not found`)
-            );
+
+          // ✅ Determine image URL
+          let imageUrl = updatedSizes[index].image; // Default: keep existing from DB
+
+          // ✅ Check if this size has a NEW image
+          if (sizeItem.hasNewImage && images[imageIndex]) {
+            console.log(`Uploading new image for size at index ${index}`);
+            const uploadedImage = await uploadToR2({
+              file: images[imageIndex],
+              folderName: cholaClientsList.egleCeramic,
+              fileType: "images",
+              mimetype: images[imageIndex].mimetype,
+            });
+            
+            // ✅ Handle both cases: uploadToR2 returns object or string
+            imageUrl = uploadedImage.url || uploadedImage;
+            imageIndex++; // ✅ Move to next image only when consumed
+            console.log(`New image uploaded: ${imageUrl}`);
+          } else if (sizeItem.existingImage) {
+            // ✅ Use existing image URL from frontend
+            imageUrl = sizeItem.existingImage;
+            console.log(`Keeping existing image: ${imageUrl}`);
           }
-        } else {
-          // ADD NEW SIZE
-          console.log(`Adding new size at index ${i}`);
-          
-          // Validate required fields for new size
-          if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
+
+          updatedSizes[index] = {
+            _id: updatedSizes[index]._id,
+            size: sizeItem.size.trim(),
+            title: sizeItem.title.trim(),
+            description: sizeItem.description.trim(),
+            image: imageUrl,
+          };
+        }
+        /* ADD NEW SIZE */
+        else {
+          let imageUrl = null;
+
+          // ✅ Check if this NEW size has an image
+          if (sizeItem.hasNewImage && images[imageIndex]) {
+            console.log(`Uploading image for new size`);
+            const uploadedImage = await uploadToR2({
+              file: images[imageIndex],
+              folderName: cholaClientsList.egleCeramic,
+              fileType: "images",
+              mimetype: images[imageIndex].mimetype,
+            });
+            
+            imageUrl = uploadedImage.url || uploadedImage;
+            imageIndex++; // ✅ Move to next image only when consumed
+          } else if (!sizeItem.hasNewImage) {
             return res.status(400).json(
-              new ApiResponse(400, {}, "New product size must include size, title, and description")
+              new ApiResponse(400, {}, "Image is required for new product size")
             );
           }
-          
-          if (!sizeItem.size.trim() || !sizeItem.title.trim() || !sizeItem.description.trim()) {
-            return res.status(400).json(
-              new ApiResponse(400, {}, "Size, title, and description cannot be empty")
-            );
-          }
-          
-          // Add new size with new ObjectId
+
           updatedSizes.push({
             _id: new mongoose.Types.ObjectId(),
             size: sizeItem.size.trim(),
             title: sizeItem.title.trim(),
-            description: sizeItem.description.trim()
+            description: sizeItem.description.trim(),
+            image: imageUrl,
           });
         }
       }
     }
 
-    console.log('Final updatedSizes:', JSON.stringify(updatedSizes, null, 2));
-
-    // Check for duplicate product name if changing
-    if (productName !== undefined && productName !== existingProduct.productName) {
-      if (!productName.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Product name cannot be empty",
-        });
-      }
-
-      const duplicateProduct = await EagleCeramicProductSize.findOne({
+    /* PRODUCT NAME DUPLICATE CHECK */
+    if (
+      productName &&
+      productName.trim() !== existingProduct.productName
+    ) {
+      const duplicate = await EagleCeramicProductSize.findOne({
         productName: productName.trim(),
-        uuid: { $ne: uuid }
+        uuid: { $ne: uuid },
       });
 
-      if (duplicateProduct) {
-        return res.status(409).json(
-          new ApiResponse(409, {}, "Product name already exists")
-        );
+      if (duplicate) {
+        return res
+          .status(409)
+          .json(new ApiResponse(409, {}, "Product name already exists"));
       }
     }
 
-    // Prepare update data
-    const updateData = {};
-    
-    if (productName !== undefined) {
-      updateData.productName = productName.trim();
-    }
-    
-    // Always update productSizes if provided (even if empty after deletions)
-    if (productSizes !== undefined || sizesToDelete !== undefined) {
-      updateData.productSizes = updatedSizes;
-    }
+    console.log('Final updatedSizes:', JSON.stringify(updatedSizes, null, 2));
 
-    // If no data to update
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json(
-        new ApiResponse(400, {}, "No data provided for update")
-      );
-    }
-
-    console.log('Update data to apply:', JSON.stringify(updateData, null, 2));
-
-    // Update the document
+    /* UPDATE DB */
     const updatedProduct = await EagleCeramicProductSize.findOneAndUpdate(
       { uuid },
-      { $set: updateData },
-      { 
-        new: true,
-        runValidators: true
-      }
+      {
+        $set: {
+          ...(productName && { productName: productName.trim() }),
+          productSizes: updatedSizes,
+        },
+      },
+      { new: true, runValidators: true }
     );
-
-    console.log('Update successful, updated product:', JSON.stringify(updatedProduct, null, 2));
 
     return res.status(200).json(
       new ApiResponse(200, updatedProduct, "Product updated successfully")
     );
-
   } catch (error) {
-    console.error("Update Product Size Error:", error);
-    console.error("Error stack:", error.stack);
-    console.error("Request body:", req.body);
-    console.error("Request params:", req.params);
-
-    if (error.name === 'ValidationError') {
-      return res.status(400).json(
-        new ApiResponse(400, {}, "Validation error: " + error.message)
-      );
-    }
-
-    if (error.name === 'CastError') {
-      return res.status(400).json(
-        new ApiResponse(400, {}, "Invalid product ID format")
-      );
-    }
-
+    console.error("Update Product Error:", error);
     return res.status(500).json(
-      new ApiResponse(500, {}, "Internal server error: " + error.message)
+      new ApiResponse(500, {}, "Internal server error")
     );
   }
 };
 
 export const eagleCeramicProductSizeDeletebyID = async (req, res) => {
-
   try {
     const { uuid } = req.params;
+
     if (!uuid) {
-      return res.status(400).json(new ApiResponse(400, {}, "Product UUID is required"));
+      return res
+        .status(400)
+        .json(new ApiResponse(400, {}, "Product UUID is required"));
     }
+
     const existingProduct = await EagleCeramicProductSize.findOne({ uuid });
 
     if (!existingProduct) {
-      return res.status(404).json(new ApiResponse(404, {}, "Product not found"));
+      return res
+        .status(404)
+        .json(new ApiResponse(404, {}, "Product not found"));
     }
+
+    
+    await Promise.all(
+      existingProduct.productSizes.map(async (data) => {
+        const children = await EagleCeramicCatalog.find({
+          productName: existingProduct.productName,
+          productSize: data.size,
+        });
+
+        await Promise.all(
+          children.map(async (child) => {
+            if (child?.imageUrl) {
+              await deleteFromR2(child.imageUrl);
+            }
+            if (child?.pdfUrl) {
+              await deleteFromR2(child.pdfUrl);
+            }
+
+            await EagleCeramicCatalog.deleteOne({ _id: child._id });
+          })
+        );
+      })
+    );
+
+    
     await EagleCeramicProductSize.deleteOne({ uuid });
 
-    return res.status(200).json(new ApiResponse(200, {}, "Product deleted successfully"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Product deleted successfully"));
+
   } catch (error) {
     console.error("Delete Product Size Error:", error);
-    return res.status(500).json(new ApiResponse(500, {}, "Internal server error"));
-  } 
+    return res
+      .status(500)
+      .json(new ApiResponse(500, {}, "Internal server error"));
+  }
 };
 
+
 export const eagleCeramicProductSizeDropdown = async (req, res) => {
-
   try {
-
-    const data = []
+    const data = [];
 
     const products = await EagleCeramicProductSize.find({});
 
     if (!products || products.length === 0) {
-      return res.status(404).json(new ApiResponse(404, data, "No products found"));
+      return res
+        .status(404)
+        .json(new ApiResponse(404, data, "No products found"));
     }
-    products.forEach(product => {
+    products.forEach((product) => {
       const obj = {
         id: product.uuid,
         productName: product.productName,
-        productSizes: []
+        productSizes: [],
       };
-      product.productSizes.forEach(sizeItem => {
+      product.productSizes.forEach((sizeItem) => {
         obj.productSizes.push(sizeItem.size);
       });
       data.push(obj);
     });
 
-    return res.status(200).json(new ApiResponse(200, data, "Products retrieved successfully"));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, data, "Products retrieved successfully"));
   } catch (error) {
     console.error("Error retrieving products:", error);
-    return res.status(500).json(new ApiResponse(500, {}, "Internal server error"));
+    return res
+      .status(500)
+      .json(new ApiResponse(500, {}, "Internal server error"));
   }
-}
+};
