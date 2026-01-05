@@ -3,12 +3,8 @@ import  {uuid}  from "../../utils/uuid/generateuuid.js";
 import { EagleCeramicProductSize } from "../../model/eagleCeramicSchema/eagle_ceramic_product_size.js";
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import mongoose from "mongoose";
-<<<<<<< HEAD
 import {uploadToR2} from "../../services/r2Upload.service.js";
 import { cholaClientsList } from "../../utils/cholaClient/cholaClientsList.js";
-=======
-import { uploadToR2 } from "../../services/r2Upload.service.js";
->>>>>>> 91b1f5ddf36f1e8f47fb0292d310388ef0d1e7ac
 
 
 export const eagleCeramicProductSizeCreate = async (req, res) => {
@@ -135,6 +131,10 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       sizesToDelete = JSON.parse(sizesToDelete);
     }
 
+    console.log('=== UPDATE DEBUG ===');
+    console.log('Parsed productSizes:', JSON.stringify(productSizes, null, 2));
+    console.log('sizesToDelete:', sizesToDelete);
+
     if (!uuid) {
       return res
         .status(400)
@@ -150,6 +150,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
     }
 
     const images = req.files?.image || [];
+    console.log('Number of new images received:', images.length);
 
     /* Clone current sizes */
     let updatedSizes = [...existingProduct.productSizes];
@@ -161,10 +162,20 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       );
     }
 
+    /* ✅ Track image index separately */
+    let imageIndex = 0;
+
     /* UPDATE / ADD SIZES */
     if (Array.isArray(productSizes)) {
       for (let i = 0; i < productSizes.length; i++) {
         const sizeItem = productSizes[i];
+
+        console.log(`Processing size ${i}:`, {
+          _id: sizeItem._id,
+          size: sizeItem.size,
+          hasNewImage: sizeItem.hasNewImage,
+          existingImage: sizeItem.existingImage ? 'present' : 'none'
+        });
 
         if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
           return res.status(400).json(
@@ -183,22 +194,58 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
           );
 
           if (index === -1) {
-            return res.status(404).json(
-              new ApiResponse(404, {}, "Product size not found")
-            );
+            // Size might have been deleted, skip it
+            console.log(`Size with _id ${sizeItem._id} not found, might be new`);
+            
+            // Treat as new size if not found
+            let imageUrl = null;
+            
+            if (sizeItem.hasNewImage && images[imageIndex]) {
+              const uploadedImage = await uploadToR2({
+                file: images[imageIndex],
+                folderName: cholaClientsList.egleCeramic,
+                fileType: "images",
+                mimetype: images[imageIndex].mimetype,
+              });
+              imageUrl = uploadedImage.url || uploadedImage;
+              imageIndex++;
+            } else if (sizeItem.existingImage) {
+              imageUrl = sizeItem.existingImage;
+            }
+            
+            if (imageUrl) {
+              updatedSizes.push({
+                _id: new mongoose.Types.ObjectId(),
+                size: sizeItem.size.trim(),
+                title: sizeItem.title.trim(),
+                description: sizeItem.description.trim(),
+                image: imageUrl,
+              });
+            }
+            continue;
           }
 
-          let imageUrl = updatedSizes[index].image;
+          // ✅ Determine image URL
+          let imageUrl = updatedSizes[index].image; // Default: keep existing from DB
 
-          if (images[i]) {
+          // ✅ Check if this size has a NEW image
+          if (sizeItem.hasNewImage && images[imageIndex]) {
+            console.log(`Uploading new image for size at index ${index}`);
             const uploadedImage = await uploadToR2({
-              file: images[i],
+              file: images[imageIndex],
               folderName: cholaClientsList.egleCeramic,
               fileType: "images",
-              mimetype: images[i].mimetype,
+              mimetype: images[imageIndex].mimetype,
             });
-
-            imageUrl = uploadedImage.url;
+            
+            // ✅ Handle both cases: uploadToR2 returns object or string
+            imageUrl = uploadedImage.url || uploadedImage;
+            imageIndex++; // ✅ Move to next image only when consumed
+            console.log(`New image uploaded: ${imageUrl}`);
+          } else if (sizeItem.existingImage) {
+            // ✅ Use existing image URL from frontend
+            imageUrl = sizeItem.existingImage;
+            console.log(`Keeping existing image: ${imageUrl}`);
           }
 
           updatedSizes[index] = {
@@ -211,25 +258,32 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
         }
         /* ADD NEW SIZE */
         else {
-          if (!images[i]) {
+          let imageUrl = null;
+
+          // ✅ Check if this NEW size has an image
+          if (sizeItem.hasNewImage && images[imageIndex]) {
+            console.log(`Uploading image for new size`);
+            const uploadedImage = await uploadToR2({
+              file: images[imageIndex],
+              folderName: cholaClientsList.egleCeramic,
+              fileType: "images",
+              mimetype: images[imageIndex].mimetype,
+            });
+            
+            imageUrl = uploadedImage.url || uploadedImage;
+            imageIndex++; // ✅ Move to next image only when consumed
+          } else if (!sizeItem.hasNewImage) {
             return res.status(400).json(
               new ApiResponse(400, {}, "Image is required for new product size")
             );
           }
-
-          const uploadedImage = await uploadToR2({
-            file: images[i],
-            folderName: cholaClientsList.egleCeramic,
-            fileType: "images",
-            mimetype: images[i].mimetype,
-          });
 
           updatedSizes.push({
             _id: new mongoose.Types.ObjectId(),
             size: sizeItem.size.trim(),
             title: sizeItem.title.trim(),
             description: sizeItem.description.trim(),
-            image: uploadedImage.url,
+            image: imageUrl,
           });
         }
       }
@@ -251,6 +305,8 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
           .json(new ApiResponse(409, {}, "Product name already exists"));
       }
     }
+
+    console.log('Final updatedSizes:', JSON.stringify(updatedSizes, null, 2));
 
     /* UPDATE DB */
     const updatedProduct = await EagleCeramicProductSize.findOneAndUpdate(
