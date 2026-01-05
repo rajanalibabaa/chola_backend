@@ -1,13 +1,15 @@
 import express from "express";
 import { eagleCeramicProductSizeCreate,eagleCeramicProductSizeGetAll,eagleCeramicProductSizeUpdate ,eagleCeramicProductSizeDeletebyID, eagleCeramicProductSizeDropdown } from "../../controllers/eagleCeramicController/eagle_ceramic_product_size.js";
-import e from "express";
+import { upload } from "../../middleware/multer/multer.js";
 
 
  export const eagleCeramicProductSizeRouter = express.Router(); 
 
 
-eagleCeramicProductSizeRouter.post("/eagle-ceramic/product-sizes/create",eagleCeramicProductSizeCreate)
+eagleCeramicProductSizeRouter.post("/eagle-ceramic/product-sizes/create",upload.fields([
+    { name: "image", maxCount: 50 }
+  ]),eagleCeramicProductSizeCreate)
 eagleCeramicProductSizeRouter.get("/eagle-ceramic/product-sizes/get-all",eagleCeramicProductSizeGetAll)
 eagleCeramicProductSizeRouter.put("/eagle-ceramic/product-sizes/update/:uuid",eagleCeramicProductSizeUpdate)
-eagleCeramicProductSizeRouter.patch("/eagle-ceramic/product-sizes/deletebyID/:uuid",eagleCeramicProductSizeDeletebyID)
+eagleCeramicProductSizeRouter.delete("/eagle-ceramic/product-sizes/deletebyID/:uuid",eagleCeramicProductSizeDeletebyID)
 eagleCeramicProductSizeRouter.get("/eagle-ceramic/product-sizes/dropdown",eagleCeramicProductSizeDropdown)

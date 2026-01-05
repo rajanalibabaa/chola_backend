@@ -1,4 +1,4 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { r2 } from "../config/r2.config.js";
 import fs from "fs/promises";
 import path from "path";
@@ -39,14 +39,14 @@ export const uploadToR2 = async ({ file, folderName, fileType = "images", mimety
 export const deleteFromR2 = async (fileUrl) => {
   try {
     const url = new URL(fileUrl);
-    const key = url.pathname.slice(1);
-    const command = new PutObjectCommand({
+    const key =  decodeURIComponent(url.pathname.substring(1));
+    const command = new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME,
       Key: key,
     });
+
     await r2.send(command);
-    console.log(`Successfully deleted ${fileUrl} from R2`);
   } catch (err) {
-    console.error(`Failed to delete ${fileUrl} from R2:`, err);
-  } 
+    console.error("❌ Failed to delete from R2:", err);
+  }
 };
