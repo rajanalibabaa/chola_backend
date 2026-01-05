@@ -11,5 +11,5 @@ eagleCeramicProductSizeRouter.post("/eagle-ceramic/product-sizes/create",upload.
   ]),eagleCeramicProductSizeCreate)
 eagleCeramicProductSizeRouter.get("/eagle-ceramic/product-sizes/get-all",eagleCeramicProductSizeGetAll)
 eagleCeramicProductSizeRouter.put("/eagle-ceramic/product-sizes/update/:uuid",eagleCeramicProductSizeUpdate)
-eagleCeramicProductSizeRouter.patch("/eagle-ceramic/product-sizes/deletebyID/:uuid",eagleCeramicProductSizeDeletebyID)
+eagleCeramicProductSizeRouter.delete("/eagle-ceramic/product-sizes/deletebyID/:uuid",eagleCeramicProductSizeDeletebyID)
 eagleCeramicProductSizeRouter.get("/eagle-ceramic/product-sizes/dropdown",eagleCeramicProductSizeDropdown)
