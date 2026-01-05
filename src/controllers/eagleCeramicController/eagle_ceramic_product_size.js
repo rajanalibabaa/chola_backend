@@ -3,11 +3,17 @@ import  {uuid}  from "../../utils/uuid/generateuuid.js";
 import { EagleCeramicProductSize } from "../../model/eagleCeramicSchema/eagle_ceramic_product_size.js";
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import mongoose from "mongoose";
+import {uploadToR2} from "../../services/r2Upload.service.js";
+import { cholaClientsList } from "../../utils/cholaClient/cholaClientsList.js";
 
 
 export const eagleCeramicProductSizeCreate = async (req, res) => {
   try {
     const { productName, productSizes } = req.body;
+
+
+    console.log('Create request received:', { productName, productSizes });
+    console.log('Files received:', req.files);
 
     /* Validation */
     if (!productName) {
