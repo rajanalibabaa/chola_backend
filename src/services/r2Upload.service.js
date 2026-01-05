@@ -35,3 +35,18 @@ export const uploadToR2 = async ({ file, folderName, fileType = "images", mimety
     throw new Error("Upload to Cloudflare R2 failed");
   }
 };
+
+export const deleteFromR2 = async (fileUrl) => {
+  try {
+    const url = new URL(fileUrl);
+    const key = url.pathname.slice(1);
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+    });
+    await r2.send(command);
+    console.log(`Successfully deleted ${fileUrl} from R2`);
+  } catch (err) {
+    console.error(`Failed to delete ${fileUrl} from R2:`, err);
+  } 
+};
