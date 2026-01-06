@@ -338,7 +338,6 @@ export const eagleCeramicProductSizeDeletebyID = async (req, res) => {
       })
     );
 
-    
     await EagleCeramicProductSize.deleteOne({ uuid });
 
     return res
@@ -352,7 +351,6 @@ export const eagleCeramicProductSizeDeletebyID = async (req, res) => {
       .json(new ApiResponse(500, {}, "Internal server error"));
   }
 };
-
 
 export const eagleCeramicProductSizeDropdown = async (req, res) => {
   try {
