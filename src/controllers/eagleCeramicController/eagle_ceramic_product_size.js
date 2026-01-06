@@ -148,40 +148,38 @@ export const eagleCeramicProductSizeGetAll = async (req, res) => {
 export const eagleCeramicProductSizeUpdate = async (req, res) => {
   try {
     const { uuid } = req.params;
-    let { productName, productSizes, sizesToDelete, singleProduct } = req.body;
+    let { productName, productSizes, sizesToDelete } = req.body;
 
-    /* Parse JSON from FormData */
-    if (typeof productSizes === "string") {
-      productSizes = JSON.parse(productSizes);
-    }
-    if (typeof sizesToDelete === "string") {
-      sizesToDelete = JSON.parse(sizesToDelete);
-    }
+    if (typeof productSizes === "string") productSizes = JSON.parse(productSizes);
+    if (typeof sizesToDelete === "string") sizesToDelete = JSON.parse(sizesToDelete);
 
     if (!Array.isArray(productSizes)) productSizes = [];
     if (!Array.isArray(sizesToDelete)) sizesToDelete = [];
 
     if (!uuid) {
-      return res
-        .status(400)
-        .json(new ApiResponse(400, {}, "Product UUID is required"));
+      return res.status(400).json(new ApiResponse(400, {}, "UUID required"));
     }
 
     const existingProduct = await EagleCeramicProductSize.findOne({ uuid });
-
     if (!existingProduct) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, {}, "Product not found"));
+      return res.status(404).json(new ApiResponse(404, {}, "Product not found"));
     }
 
     const images = req.files?.image || [];
-
-    /* Clone current sizes */
     let updatedSizes = [...existingProduct.productSizes];
 
-    /* DELETE SIZES */
+    /* 🔥 DELETE SIZE IMAGES FROM R2 */
     if (sizesToDelete.length > 0) {
+      const deletedSizes = existingProduct.productSizes.filter((s) =>
+        sizesToDelete.includes(s._id.toString())
+      );
+
+      await Promise.all(
+        deletedSizes.map(async (size) => {
+          if (size.image) await deleteFromR2(size.image);
+        })
+      );
+
       updatedSizes = updatedSizes.filter(
         (s) => !sizesToDelete.includes(s._id.toString())
       );
@@ -195,15 +193,10 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
 
       if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
         return res.status(400).json(
-          new ApiResponse(
-            400,
-            {},
-            "Each product size must include size, title, and description"
-          )
+          new ApiResponse(400, {}, "Size, title & description required")
         );
       }
 
-      /* UPDATE EXISTING SIZE */
       if (sizeItem._id) {
         const index = updatedSizes.findIndex(
           (s) => s._id.toString() === sizeItem._id.toString()
@@ -211,15 +204,20 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
 
         let imageUrl = index !== -1 ? updatedSizes[index].image : null;
 
+        /* 🔥 REPLACE IMAGE */
         if (sizeItem.hasNewImage && images[imageIndex]) {
-          const uploadedImage = await uploadToR2({
+          if (imageUrl) {
+             await deleteFromR2(imageUrl);
+          }
+
+          const uploaded = await uploadToR2({
             file: images[imageIndex],
             folderName: cholaClientsList.egleCeramic,
             fileType: "images",
             mimetype: images[imageIndex].mimetype,
           });
 
-          imageUrl = uploadedImage.url || uploadedImage;
+          imageUrl = uploaded.url || uploaded;
           imageIndex++;
         } else if (sizeItem.existingImage) {
           imageUrl = sizeItem.existingImage;
@@ -233,25 +231,15 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
             description: sizeItem.description.trim(),
             image: imageUrl,
           };
-        } else {
-          updatedSizes.push({
-            _id: new mongoose.Types.ObjectId(),
-            size: sizeItem.size.trim(),
-            title: sizeItem.title.trim(),
-            description: sizeItem.description.trim(),
-            image: imageUrl,
-          });
         }
-      }
-      /* ADD NEW SIZE */
-      else {
+      } else {
         if (!sizeItem.hasNewImage || !images[imageIndex]) {
           return res.status(400).json(
-            new ApiResponse(400, {}, "Image is required for new product size")
+            new ApiResponse(400, {}, "Image required for new size")
           );
         }
 
-        const uploadedImage = await uploadToR2({
+        const uploaded = await uploadToR2({
           file: images[imageIndex],
           folderName: cholaClientsList.egleCeramic,
           fileType: "images",
@@ -263,28 +251,13 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
           size: sizeItem.size.trim(),
           title: sizeItem.title.trim(),
           description: sizeItem.description.trim(),
-          image: uploadedImage.url || uploadedImage,
+          image: uploaded.url || uploaded,
         });
 
         imageIndex++;
       }
     }
 
-    /* PRODUCT NAME DUPLICATE CHECK */
-    if (productName && productName.trim() !== existingProduct.productName) {
-      const duplicate = await EagleCeramicProductSize.findOne({
-        productName: productName.trim(),
-        uuid: { $ne: uuid },
-      });
-
-      if (duplicate) {
-        return res
-          .status(409)
-          .json(new ApiResponse(409, {}, "Product name already exists"));
-      }
-    }
-
-    /* UPDATE PRODUCT */
     const updatedProduct = await EagleCeramicProductSize.findOneAndUpdate(
       { uuid },
       {
@@ -293,63 +266,14 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
           productSizes: updatedSizes,
         },
       },
-      { new: true, runValidators: true }
+      { new: true }
     );
 
-    if (!updatedProduct) {
-      return res
-        .status(404)
-        .json(new ApiResponse(404, {}, "Product not found after update"));
-    }
-
-    /* UPDATE PARENT CATALOG PRODUCT NAME */
-    if (productName && productName.trim() !== existingProduct.productName) {
-      const parentCatalog = await EagleCeramicCatalog.find({
-        productName: existingProduct.productName,
-      });
-
-      await Promise.all(
-        parentCatalog.map(async (item) => {
-          item.productName = productName.trim();
-          await item.save();
-        })
-      );
-    }
-
-    /* UPDATE CHILD CATALOG PRODUCT SIZE */
-    await Promise.all(
-      productSizes.map(async (sizeItem, index) => {
-        if (
-          !sizeItem?._id ||
-          !existingProduct.productSizes[index]?._id
-        )
-          return;
-
-        if (
-          sizeItem._id.toString() ===
-            existingProduct.productSizes[index]._id.toString() &&
-          sizeItem.size !== existingProduct.productSizes[index].size
-        ) {
-          const childCatalog = await EagleCeramicCatalog.find({
-            productName: productName || existingProduct.productName,
-            productSize: existingProduct.productSizes[index].size,
-          });
-
-          await Promise.all(
-            childCatalog.map(async (item) => {
-              item.productSize = sizeItem.size;
-              await item.save();
-            })
-          );
-        }
-      })
-    );
-
-    return res.status(200).json(
-      new ApiResponse(200, updatedProduct, "Product updated successfully")
-    );
+    return res
+      .status(200)
+      .json(new ApiResponse(200, updatedProduct, "Updated successfully"));
   } catch (error) {
-    console.error("Update Product Error:", error);
+    console.error("Update Error:", error);
     return res.status(500).json(
       new ApiResponse(500, {}, "Internal server error")
     );
