@@ -1,0 +1,33 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches: [ "servercode" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+        
+      - name: Deploy on VPS
+        run: |
+          ssh $VPS_USER@$VPS_HOST "
+           cd /root/chola_backend
+           git fetch origin servercode
+           git reset --hard origin/servercode
+           npm install
+           pm2 restart chola_clientbackend || pm2 start index.js --name chola_clientbackend
+           pm2 save
+          "
+        env:
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
