@@ -12,8 +12,9 @@ export const eagleCeramicCatalogCreate = async (req, res) => {
     title,
     description,
     buttonText,
-    productId,
   } = req.body;
+
+  const id = req.body.id || req.body.productId;
 
   try {
     const imageFile = req.files["image"] ? req.files["image"][0] : null;
@@ -56,7 +57,7 @@ export const eagleCeramicCatalogCreate = async (req, res) => {
       buttonText,
       imageUrl: uploadedImage,
       pdfUrl: uploadedPdf,
-      productId,
+      productId: id,
     });
 
     const savedCatalogEntry = await newCatalogEntry.save();

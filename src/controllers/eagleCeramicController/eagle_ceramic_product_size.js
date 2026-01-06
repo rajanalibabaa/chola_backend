@@ -148,7 +148,7 @@ export const eagleCeramicProductSizeGetAll = async (req, res) => {
 export const eagleCeramicProductSizeUpdate = async (req, res) => {
   try {
     const { uuid } = req.params;
-    let { productName, productSizes, sizesToDelete } = req.body;
+    let { productName, productSizes, sizesToDelete,singleProduct } = req.body;
 
     /* Parse JSON from FormData */
     if (typeof productSizes === "string") {
@@ -158,9 +158,8 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       sizesToDelete = JSON.parse(sizesToDelete);
     }
 
-    console.log('=== UPDATE DEBUG ===');
-    console.log('Parsed productSizes:', JSON.stringify(productSizes, null, 2));
-    console.log('sizesToDelete:', sizesToDelete);
+    console.log('=== UPDATE productName ===',productName);
+    console.log('=== UPDATE productSizes ===',productSizes);
 
     if (!uuid) {
       return res
@@ -177,7 +176,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
     }
 
     const images = req.files?.image || [];
-    console.log('Number of new images received:', images.length);
+    // console.log('Number of new images received:', images.length);
 
     /* Clone current sizes */
     let updatedSizes = [...existingProduct.productSizes];
@@ -197,12 +196,12 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       for (let i = 0; i < productSizes.length; i++) {
         const sizeItem = productSizes[i];
 
-        console.log(`Processing size ${i}:`, {
-          _id: sizeItem._id,
-          size: sizeItem.size,
-          hasNewImage: sizeItem.hasNewImage,
-          existingImage: sizeItem.existingImage ? 'present' : 'none'
-        });
+        // console.log(`Processing size ${i}:`, {
+        //   _id: sizeItem._id,
+        //   size: sizeItem.size,
+        //   hasNewImage: sizeItem.hasNewImage,
+        //   existingImage: sizeItem.existingImage ? 'present' : 'none'
+        // });
 
         if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
           return res.status(400).json(
@@ -222,7 +221,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
 
           if (index === -1) {
             // Size might have been deleted, skip it
-            console.log(`Size with _id ${sizeItem._id} not found, might be new`);
+            // console.log(`Size with _id ${sizeItem._id} not found, might be new`);
             
             // Treat as new size if not found
             let imageUrl = null;
@@ -257,7 +256,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
 
           // ✅ Check if this size has a NEW image
           if (sizeItem.hasNewImage && images[imageIndex]) {
-            console.log(`Uploading new image for size at index ${index}`);
+            // console.log(`Uploading new image for size at index ${index}`);
             const uploadedImage = await uploadToR2({
               file: images[imageIndex],
               folderName: cholaClientsList.egleCeramic,
@@ -268,11 +267,11 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
             // ✅ Handle both cases: uploadToR2 returns object or string
             imageUrl = uploadedImage.url || uploadedImage;
             imageIndex++; // ✅ Move to next image only when consumed
-            console.log(`New image uploaded: ${imageUrl}`);
+            // console.log(`New image uploaded: ${imageUrl}`);
           } else if (sizeItem.existingImage) {
             // ✅ Use existing image URL from frontend
             imageUrl = sizeItem.existingImage;
-            console.log(`Keeping existing image: ${imageUrl}`);
+            // console.log(`Keeping existing image: ${imageUrl}`);
           }
 
           updatedSizes[index] = {
@@ -289,7 +288,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
 
           // ✅ Check if this NEW size has an image
           if (sizeItem.hasNewImage && images[imageIndex]) {
-            console.log(`Uploading image for new size`);
+            // console.log(`Uploading image for new size`);
             const uploadedImage = await uploadToR2({
               file: images[imageIndex],
               folderName: cholaClientsList.egleCeramic,
@@ -333,7 +332,7 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       }
     }
 
-    console.log('Final updatedSizes:', JSON.stringify(updatedSizes, null, 2));
+    // console.log('Final updatedSizes:', JSON.stringify(updatedSizes, null, 2));
 
     /* UPDATE DB */
     const updatedProduct = await EagleCeramicProductSize.findOneAndUpdate(
@@ -346,6 +345,17 @@ export const eagleCeramicProductSizeUpdate = async (req, res) => {
       },
       { new: true, runValidators: true }
     );
+
+    if (!updatedProduct) {
+      return res
+        .status(404)
+        .json(new ApiResponse(404, {}, "Product not found after update"));
+    }
+
+    if(productName !== existingProduct.productName){
+      const parentCatalog = await EagleCeramicCatalog.find({ productName: existingProduct.productName})
+      console.log('Parent catalog items to update:', parentCatalog);
+    }
 
     return res.status(200).json(
       new ApiResponse(200, updatedProduct, "Product updated successfully")
