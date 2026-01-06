@@ -19,7 +19,7 @@ export const verify_client_token = async (req, res, next) => {
 
     if (expired) {
       return res.status(401).json(
-        new ApiResponse(401, null, "Token expired, please request a new OTP")
+        new ApiResponse(401, null, "Token expired, please login again")
       );
     }
 

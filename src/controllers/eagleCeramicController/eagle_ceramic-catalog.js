@@ -6,17 +6,28 @@ import { cholaClientsList } from "../../utils/cholaClient/cholaClientsList.js";
 import { uuid } from "../../utils/uuid/generateuuid.js";
 
 export const eagleCeramicCatalogCreate = async (req, res) => {
-  const {
-    productName,
-    productSize,
-    title,
-    description,
-    buttonText,
-  } = req.body;
+  const { productName, productSize, title, description, buttonText } = req.body;
 
   const id = req.body.id || req.body.productId;
 
   try {
+    const existingProduct = await EagleCeramicCatalog.findOne({
+      productName,
+      productSize,
+      title,
+    });
+
+    if (existingProduct) {
+      return res
+        .status(409)
+        .json(
+          new ApiResponse(
+            409,
+            existingProduct,
+            "Catalog entry already exists for this product, size, and title"
+          )
+        );
+    }
     const imageFile = req.files["image"] ? req.files["image"][0] : null;
     const pdfFile = req.files["pdf"] ? req.files["pdf"][0] : null;
 
