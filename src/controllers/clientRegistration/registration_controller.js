@@ -13,7 +13,7 @@ export const cholaClientRegistration = async (req, res) => {
       companyName,
       domainName,
     } = req.body;
-    console.log("req.body :", req.body);
+  
     if (!email || !domainName) {
       return res
         .status(400)
@@ -32,8 +32,7 @@ export const cholaClientRegistration = async (req, res) => {
     }
 
     const generate = await uuid();
-    console.log("generate uuid :", generate);
-    // console.log("generate uuid type:", Registration.schema);
+ 
     
     const newUser = new Registration({
       uuid: generate,

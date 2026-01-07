@@ -12,10 +12,7 @@ export const transporter = nodemailer.createTransport({
 
 export const sendEmail = async ({ to, subject, html }) => {
 
-  console.log("Sending email to :",to)
-  console.log("Email subject :",subject)
-  // console.log("Email html :",html)
-  await transporter.sendMail({
+await transporter.sendMail({
     from: `"MrFranchise" <${process.env.SMTP_USER}>`,
     to,
     subject,

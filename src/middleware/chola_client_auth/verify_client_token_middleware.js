@@ -9,8 +9,6 @@ export const verify_client_token = async (req, res, next) => {
       req.query?.token ||
       req.header("Authorization")?.replace("Bearer ", "");
 
-      console.log(token)
-
     if (!token) {
       return res.status(401).json(
         new ApiResponse(401, null, "Token not found, Unauthorized request")

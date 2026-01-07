@@ -7,7 +7,7 @@ import { verify_client_token } from "../../middleware/chola_client_auth/verify_c
  export const eagleCeramicProductSizeRouter = express.Router(); 
 
 
-eagleCeramicProductSizeRouter.post("/eagle-ceramic/product-sizes/create",verify_client_token,upload.fields([
+eagleCeramicProductSizeRouter.post("/eagle-ceramic/product-sizes/create",upload.fields([
     { name: "image", maxCount: 50 }
   ]),eagleCeramicProductSizeCreate)
 eagleCeramicProductSizeRouter.get("/eagle-ceramic/product-sizes/get-all",eagleCeramicProductSizeGetAll)

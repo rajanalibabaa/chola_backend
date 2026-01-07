@@ -10,7 +10,7 @@ export const generateClientOTP = async(email) => {
     }
 
     const newOtp = generateOtp();
-    console.log("newOtp :", newOtp);
+    
 
     if (!newOtp) {
       return 500, {}, "OTP generation failed"

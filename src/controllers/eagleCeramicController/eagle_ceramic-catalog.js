@@ -161,8 +161,8 @@ export const deleteEagleCeramicCatalogById = async (req, res) => {
     const deletedEntry = await EagleCeramicCatalog.findOneAndDelete({
       uuid: catalogId,
     });
-    console.log("Deleted catalog entry:", deletedEntry);
-
+   
+    
     if (!deletedEntry) {
       return res.json(new ApiResponse(404, null, "Catalog not found"));
     }
@@ -193,7 +193,6 @@ export const updateEagleCeramicCatalog = async (req, res) => {
   try {
     const catalog = await EagleCeramicCatalog.findOne({ uuid: id });
 
-    console.log("Found catalog entry:", catalog);
     if (!catalog) {
       return res.json(new ApiResponse(404, null, "Catalog entry not found"));
     }

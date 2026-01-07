@@ -12,7 +12,6 @@ export const sendOtp = async (req, res) => {
   try {
     const email = req.body?.email || req.query?.email;
 
-    console.log("email :", email);
     if (!email) {
       return res.json(new ApiResponse(400, {}, "Email is required"));
     }
@@ -24,7 +23,7 @@ export const sendOtp = async (req, res) => {
     }
 
     const newOtp = generateOtp();
-    console.log("newOtp :", newOtp);
+    
 
     if (!newOtp) {
       return res.json(new ApiResponse(500, {}, "OTP generation failed"));
@@ -78,7 +77,7 @@ export const verifyOtp = async (req, res) => {
   }
 
   const isvalid = await compareValue(String(otp), user.otp);
-  console.log("isvalid :", isvalid);
+ 
 
   if (!isvalid) {
     return res.json(new ApiResponse(404, null, "OTP not match"));
@@ -94,7 +93,7 @@ export const verifyOtp = async (req, res) => {
 export const sendOrResendRegistrationOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    console.log("email :", email);
+    
 
     if (!email) {
       return res.json(new ApiResponse(400, null, "Email is required"));
