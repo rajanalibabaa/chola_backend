@@ -12,8 +12,9 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
   try {
     const { productName, productSizes } = req.body;
 
-
-    console.log('Create request received:', { productName, productSizes });
+    console.log('Create request received - productName:', productName);
+    console.log('Create request received - productSizes (raw):', productSizes);
+    console.log('Create request received - productSizes (type):', typeof productSizes);
     console.log('Files received:', req.files);
 
     /* Validation */
@@ -23,17 +24,31 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
         .json(new ApiResponse(400, {}, "Product name is required"));
     }
 
+    // FIX: Parse productSizes if it's a string
+    let parsedProductSizes = productSizes;
+    if (typeof productSizes === 'string') {
+      try {
+        parsedProductSizes = JSON.parse(productSizes);
+        console.log('Parsed productSizes:', parsedProductSizes);
+      } catch (parseError) {
+        console.error('Error parsing productSizes:', parseError);
+        return res
+          .status(400)
+          .json(new ApiResponse(400, {}, "Invalid productSizes format"));
+      }
+    }
+
     if (
-      !productSizes ||
-      !Array.isArray(productSizes) ||
-      productSizes.length === 0
+      !parsedProductSizes ||
+      !Array.isArray(parsedProductSizes) ||
+      parsedProductSizes.length === 0
     ) {
       return res
         .status(400)
-        .json(new ApiResponse(400, {}, "Product sizes array is required"));
+        .json(new ApiResponse(400, {}, "Product sizes array is required and must not be empty"));
     }
 
-    for (const sizeItem of productSizes) {
+    for (const sizeItem of parsedProductSizes) {
       if (!sizeItem.size || !sizeItem.title || !sizeItem.description) {
         return res
           .status(400)
@@ -59,15 +74,18 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
 
     /* Images */
     const images = req.files?.image || [];
+    console.log('Number of images received:', images.length);
+    console.log('Number of product sizes:', parsedProductSizes.length);
 
-    if (images.length !== productSizes.length) {
+    // FIX: Check if images are provided (they might be optional for updates)
+    if (images.length > 0 && images.length !== parsedProductSizes.length) {
       return res
         .status(400)
         .json(
           new ApiResponse(
             400,
             {},
-            "Number of images must match number of product sizes"
+            `Number of images (${images.length}) must match number of product sizes (${parsedProductSizes.length})`
           )
         );
     }
@@ -75,18 +93,27 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
     /* Upload images to R2 and map to sizes */
     const updatedProductSizes = [];
 
-    for (let i = 0; i < productSizes.length; i++) {
+    for (let i = 0; i < parsedProductSizes.length; i++) {
+      const sizeItem = parsedProductSizes[i];
       const imageFile = images[i];
 
-      const uploadedImage = await uploadToR2({
-        file: imageFile,
-        folderName: cholaClientsList.egleCeramic,
-        fileType: "images",
-        mimetype: imageFile.mimetype,
-      });
+      let uploadedImage = null;
+      
+      // Only upload if image file exists
+      if (imageFile) {
+        uploadedImage = await uploadToR2({
+          file: imageFile,
+          folderName: cholaClientsList.egleCeramic,
+          fileType: "images",
+          mimetype: imageFile.mimetype,
+        });
+      } else if (sizeItem.image) {
+        // If no new image but there's an existing image URL, keep it
+        uploadedImage = sizeItem.image;
+      }
 
       updatedProductSizes.push({
-        ...productSizes[i],
+        ...sizeItem,
         image: uploadedImage,
       });
     }
@@ -97,6 +124,8 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
       productName,
       productSizes: updatedProductSizes,
     });
+
+    console.log('Product created successfully:', newProductSize);
 
     return res
       .status(201)
@@ -111,7 +140,7 @@ export const eagleCeramicProductSizeCreate = async (req, res) => {
     console.error("Create Product Size Error:", error);
     return res
       .status(500)
-      .json(new ApiResponse(500, {}, "Internal server error"));
+      .json(new ApiResponse(500, {}, error.message || "Internal server error"));
   }
 };
 
