@@ -2,7 +2,7 @@ import { Registration } from "../../model/clientRegistration/registraion_model.j
 import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 import { verifyToken } from "../../utils/jwt/verifyToken.js";
 
-export const verify_client_token = async (req, res, next) => {
+export const otp_verify_token = async (req, res, next) => {
   try {
     const token =
       req.body?.token ||
@@ -34,12 +34,6 @@ export const verify_client_token = async (req, res, next) => {
     if (!user) {
       return res.status(404).json(
         new ApiResponse(404, null, "User not found")
-      );
-    }
-
-    if (user?.token !== token) {
-      return res.status(404).json(
-        new ApiResponse(404, null, "Please login again")
       );
     }
 

@@ -27,9 +27,9 @@ export const clientLogin = async (req, res) => {
 
     user.otp = null;
     user.otpExpiresAt = null;
-    await user.save();
+    
 
-    delete user.otp;
+    // delete user.otp;
     const payload = {
       id: user._id,
       email: user?.email,
@@ -42,7 +42,8 @@ export const clientLogin = async (req, res) => {
         .status(500)
         .json(new ApiResponse(500, {}, "Token generation failed"));
     }
-
+    user.token = token
+    await user.save();
     res.cookie("auth_token", token, {
       httpOnly: true,
       secure: false,

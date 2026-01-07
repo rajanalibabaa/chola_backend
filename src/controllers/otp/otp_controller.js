@@ -24,6 +24,7 @@ export const sendOtp = async (req, res) => {
 
     const newOtp = generateOtp();
     
+    console.log("newOtp :",newOtp)
 
     if (!newOtp) {
       return res.json(new ApiResponse(500, {}, "OTP generation failed"));

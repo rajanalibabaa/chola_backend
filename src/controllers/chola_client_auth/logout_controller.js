@@ -2,6 +2,10 @@ import { ApiResponse } from "../../utils/ApiResponse/ApiResponse.js";
 
 export const clientLogout = async (req, res) => {
   try {
+
+    const user = req.user
+    user.token = ''
+    await user.save();
     res.clearCookie("auth_token", {
       httpOnly: true,
       secure: true,       
